@@ -53,12 +53,14 @@ def download_process_img(feature, cube_sides):
 
     # Check if chuck files exist
     list_sides = []
-    for i in cube_sides.split(","):
-        img_cube_chunk = f"{storage_path}/{sequence_id}/{image_id}_{sides_dict[i]}.jpg"
-        if not os.path.isfile(img_cube_chunk):
-            list_sides.append(i)
-        else:
-            print(f"File exist..{img_cube_chunk}")
+    cube_list = cube_sides.split(",")
+    for i in cube_list:
+        if i in sides_dict.keys():
+            img_cube_chunk = f"{storage_path}/{sequence_id}/{image_id}_{sides_dict[i]}.jpg"
+            if not os.path.isfile(img_cube_chunk):
+                list_sides.append(i)
+            else:
+                print(f"File exist..{img_cube_chunk}")
 
     # Split spherical image into chunks
     if len(list_sides) > 0:
