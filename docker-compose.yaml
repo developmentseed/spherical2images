@@ -1,0 +1,12 @@
+version: '3'
+services:
+  spherical2cube:
+    image: devseed/spherical2cube:v1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+        - MAPILLARY_ACCESS_TOKEN=${MAPILLARY_ACCESS_TOKEN}
+    volumes:
+        - ./:/mnt
+    working_dir: /mnt
