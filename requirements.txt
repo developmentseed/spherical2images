@@ -1,0 +1,8 @@
+requests==2.25.1
+joblib==1.0.1
+tqdm==4.61.1
+click==7.1.2
+opencv-python==4.5.5.62
+vt2geojson==0.2.1
+mapbox-vector-tile==1.2.1
+mercantile==1.2.1

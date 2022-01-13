@@ -89,9 +89,9 @@
 # set default values; 
 dimension=256					#square dimension of 6 output images
 bgcolor=black					#virtual-pixel background color
-montage="yes"					#create montaged output
+montage="no"					#create montaged output, "yes" | "no"
 interpolation="bilinear"		#interpolation mode
-
+sides="0,1,2,3,4,5"				#Sides to clip
 
 # set directory for temporary files
 dir="."    # suggestions are dir="." or dir="/tmp"
@@ -156,7 +156,7 @@ else
 				   checkMinus "$1"
 				   dimension=`expr "$1" : '\([0-9]*\)'`
 				   test=`echo "$dimension == 0" | bc`
-				   [ $test -eq 1 ] && errMsg "--- DIMENSION=$dimension MUST BE A POSITIVE INTEGER ---"
+				   [[ $test -eq 1 ]] && errMsg "--- DIMENSION=$dimension MUST BE A POSITIVE INTEGER ---"
 				   ;;
 			-b)    # get bcolor
 				   shift  # to get the next parameter
@@ -178,11 +178,18 @@ else
 				   errorMsg="--- INVALID MONTAGE SPECIFICATION ---"
 				   checkMinus "$1"
 				   monotone=`echo "$1" | tr '[A-Z]' '[a-z]'`
-				   case "$montage" in 
-						yes) ;;
-						no) ;;
-						*) errMsg "--- MONTAGE=$montage IS AN INVALID VALUE ---"  ;;
-				   esac
+				#    case "$montage" in 
+				# 		yes) ;;
+				# 		no) ;;
+				# 		*) errMsg "--- MONTAGE=$montage IS AN INVALID VALUE ---"  ;;
+				#    esac
+				   ;;
+			-s)    # get sides
+				   shift  # to get the next parameter
+				   # test if parameter starts with minus sign 
+				   errorMsg="--- INVALID SIDE SPECIFICATION ---"
+				   checkMinus "$1"
+				   sides="$1"
 				   ;;
 			 -)    # STDIN and end of arguments
 				   break
@@ -246,10 +253,9 @@ dlast=$((dimension-1))
 # Put origin at center of box with z axis upward, x axis forward (theta=0 at center of input) and y axis to left.
 # Extract each face of the cube, Front=0, Left=1, Right=2, Back=3, Over=4, Under=5
 # Note over and under will be facing front and tilting up and down
-
-
-for ((i=0; i<6; i++)); do
-
+# for ((i=0; i<6; i++)); do
+for i in ${sides//,/ }
+do
 	# set output name
 	case $i in
 		0) outfile="${outpath}_front.${suffix}" ;;
@@ -260,8 +266,8 @@ for ((i=0; i<6; i++)); do
 		5) outfile="${outpath}_under.${suffix}" ;;
 	esac
 
-	echo ""
-	echo "i=$i; outfile=$outfile"
+	# echo ""
+	# echo "i=$i; outfile=$outfile"
 
 	# normalize output image coordinates to -1 to 1 relative to center with xc right and yc up
 	# from pixel coords i right and j down with zero at top left corner
@@ -339,8 +345,12 @@ done
 
 if [ "$montage" = "yes" ]; then
 	convert -size ${dimension}x${dimension} xc:white $tmpA2
-	montage $tmpA2 "${outpath}_over.${suffix}" $tmpA2 $tmpA2 \
-		"${outpath}_left.${suffix}" "${outpath}_front.${suffix}" "${outpath}_right.${suffix}" "${outpath}_back.${suffix}" \
+	montage $tmpA2 \
+	"${outpath}_over.${suffix}" $tmpA2 $tmpA2 \
+		"${outpath}_left.${suffix}" \
+		"${outpath}_front.${suffix}" \
+		"${outpath}_right.${suffix}" \
+		"${outpath}_back.${suffix}" \
 		$tmpA2 "${outpath}_under.${suffix}" $tmpA2 $tmpA2 \
 		-background white -tile 4x3 -geometry +0+0 \
 		"${outpath}_montage.${suffix}"
