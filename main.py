@@ -72,7 +72,6 @@ def download_process_img(feature, cube_sides):
 
 def process_image(bbox, cube_sides):
     # define an empty geojson as output
-    output = {"type": "FeatureCollection", "features": []}
     tile_coverage = "mly1_public"
     tile_layer = "image"
     west, south, east, north = bbox
@@ -94,8 +93,7 @@ def process_image(bbox, cube_sides):
             # ensure feature falls inside bounding box since tiles can extend beyond
             if lng > west and lng < east and lat > south and lat < north and is_pano:
                 features.append(feature)
-                output["features"].append(feature)
-
+        # Process in parallel
         results = Parallel(n_jobs=-1)(
             delayed(download_process_img)(feature, cube_sides)
             for feature in tqdm(features, desc=f"Processing images for...", total=len(features))
@@ -125,7 +123,7 @@ def main(bbox, cube_sides):
     bbox = [float(item) for item in bbox.split(",")]
     output = process_image(bbox, cube_sides)
     with open(f"{storage_path}/list.json", "w") as f:
-        json.dump(output, f)
+        json.dump({"type": "FeatureCollection", "features": output}, f)
 
 
 if __name__ == "__main__":
