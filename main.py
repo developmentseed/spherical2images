@@ -96,11 +96,11 @@ def process_image(bbox, cube_sides):
             if lng > west and lng < east and lat > south and lat < north and is_pano:
                 features.append(feature)
         # Process in parallel
-        results = Parallel(n_jobs=-1)(
-            delayed(download_process_img)(feature, cube_sides)
-            for feature in tqdm(features, desc=f"Processing images for...", total=len(features))
-        )
-    return results
+        # results = Parallel(n_jobs=-1)(
+        #     delayed(download_process_img)(feature, cube_sides)
+        #     for feature in tqdm(features[:100], desc=f"Processing images for...", total=len(features[:100]))
+        # )
+    return features
 
 
 @click.command(short_help="Script to get last updates for adapters")
@@ -124,7 +124,8 @@ def process_image(bbox, cube_sides):
 def main(bbox, cube_sides):
     bbox = [float(item) for item in bbox.split(",")]
     output = process_image(bbox, cube_sides)
-    with open(f"{storage_path}/list.json", "w") as f:
+
+    with open(f"{storage_path}/list.geojson", "w") as f:
         json.dump({"type": "FeatureCollection", "features": output}, f)
 
 
