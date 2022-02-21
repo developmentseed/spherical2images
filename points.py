@@ -6,6 +6,7 @@ import click
 from joblib import Parallel, delayed
 from tqdm import tqdm
 from vt2geojson.tools import vt_bytes_to_geojson
+from utils import build_sequence
 
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
@@ -58,28 +59,9 @@ def main(bbox, output_point, output_sequences):
     with open(output_point, "w") as f:
         json.dump({"type": "FeatureCollection", "features": points}, f)
 
-    # Build sequence linesans and save
-    sequences = {}
-    points_sorted = sorted(points, key=lambda item: int(item["properties"]["captured_at"]))
-    for point in points_sorted:
-        sequence_id = str(point["properties"]["sequence_id"])
-        if sequence_id not in sequences.keys():
-            sequences[sequence_id] = {
-                "type": "Feature",
-                "properties": {"sequence_id": sequence_id},
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [point["geometry"]["coordinates"]],
-                },
-            }
-        else:
-            sequences[sequence_id]["geometry"]["coordinates"].append(
-                point["geometry"]["coordinates"]
-            )
-
+    sequences = build_sequence(points)
     with open(output_sequences, "w") as f:
-        sequences_values = list(sequences.values())
-        json.dump({"type": "FeatureCollection", "features": sequences_values}, f)
+        json.dump({"type": "FeatureCollection", "features": sequences}, f)
 
 
 if __name__ == "__main__":
