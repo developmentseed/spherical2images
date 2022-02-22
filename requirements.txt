@@ -6,3 +6,6 @@ opencv-python==4.5.5.62
 vt2geojson==0.2.1
 mapbox-vector-tile==1.2.1
 mercantile==1.2.1
+py360convert==0.1.0
+Pillow==9.0.1
+cubemap-splitter==0.1.1

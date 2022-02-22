@@ -1,4 +1,3 @@
-import mercantile
 from numpy import integer
 import requests
 import json
@@ -6,7 +5,11 @@ import os
 import click
 from joblib import Parallel, delayed
 from tqdm import tqdm
-from vt2geojson.tools import vt_bytes_to_geojson
+from cubemap_splitter import split_cubemap
+import os
+from pathlib import Path
+import shutil
+import glob
 
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 sides_dict = {
@@ -33,7 +36,6 @@ def download_process_img(feature, output_images_path, image_clip_size, cube_side
     """
     sequence_id = feature["properties"]["sequence_id"]
     image_folder_path = f"{output_images_path}/{sequence_id}"
-    print(image_folder_path)
 
     if not os.path.exists(image_folder_path):
         os.makedirs(image_folder_path)
@@ -42,38 +44,88 @@ def download_process_img(feature, output_images_path, image_clip_size, cube_side
     image_id = feature["properties"]["id"]
 
     # Check if mapillary image exist and download
-    img_file = f"{image_folder_path}/{image_id}.jpg"
-    if not os.path.isfile(img_file):
+    img_file_equirectangular = f"{image_folder_path}/{image_id}.jpg"
+    img_file_cubemap = f"{image_folder_path}/{image_id}_cubemap.jpg"
+
+    if not os.path.isfile(img_file_equirectangular):
         header = {"Authorization": "OAuth {}".format(access_token)}
         url = "https://graph.mapillary.com/{}?fields=thumb_2048_url".format(
             image_id)
-        r = requests.get(url, headers=header)
-        data = r.json()
-        image_url = data["thumb_2048_url"]
-        with open(img_file, "wb") as handler:
-            image_data = requests.get(image_url, stream=True).content
-            handler.write(image_data)
+
+        try:
+            r = requests.get(url, headers=header)
+            data = r.json()
+            image_url = data["thumb_2048_url"]
+            with open(img_file_equirectangular, "wb") as handler:
+                image_data = requests.get(image_url, stream=True).content
+                handler.write(image_data)
+
+            # Convert Equirectangular -> Cubemap
+            cmd =f"convert360 --convert e2c --i {img_file_equirectangular}  --o {img_file_cubemap} --w {image_clip_size}"
+            os.system(cmd)
+
+            # Split Cubemap to simple images
+            chumk_image_path = f"{image_folder_path}/{image_id}"
+            if not os.path.exists(chumk_image_path):
+                os.makedirs(chumk_image_path)
+            split_cubemap(img_file_cubemap, format_type=1,
+                          output_directory=chumk_image_path)
+            # Rename files
+            clean_files(image_folder_path, image_id)
+
+        except requests.exceptions.HTTPError as err:
+            raise SystemExit(err)
+        except OSError as error : 
+            print(error)
+
     else:
-        print(f"File exist..{img_file}")
+        print(f"File exist..{img_file_equirectangular}")
 
-    # Check if chuck files exist
-    list_sides = []
-    cube_list = cube_sides.split(",")
-    for i in cube_list:
-        if i in sides_dict.keys():
-            img_cube_chunk = f"{image_folder_path}/{image_id}_{sides_dict[i]}.jpg"
-            if not os.path.isfile(img_cube_chunk):
-                list_sides.append(i)
-            else:
-                print(f"File exist..{img_cube_chunk}")
+    # # Check if chuck image files exist
+    # list_sides = []
+    # cube_list = cube_sides.split(",")
+    # for i in cube_list:
+    #     if i in sides_dict.keys():
+    #         img_cube_chunk = f"{image_folder_path}/{image_id}_{sides_dict[i]}.jpg"
+    #         if not os.path.isfile(img_cube_chunk):
+    #             list_sides.append(i)
+    #         else:
+    #             print(f"File exist..{img_cube_chunk}")
 
-    # Split spherical image into chunks
-    if len(list_sides) > 0:
-        str_sides = ",".join(list_sides)
-        os.system(
-            f"sphericalpano2cube -d {image_clip_size} -s {cube_sides} {img_file} {img_file}")
-    # TODO Upload to cloud provider
+    # # Split spherical image into chunks
+    # if len(list_sides) > 0:
+    #     # Convert Equirectangular -> Cubemap
+    #     os.system(
+    #         f"convert360 --convert e2c --i {img_file_equirectangular}  --o {img_file_cubemap} --w {image_clip_size}"
+    #     )
+
+    #     # Split Cubemap to simple images
+    #     chumk_image_path = f"{image_folder_path}/{image_id}"
+    #     if not os.path.exists(chumk_image_path):
+    #         os.makedirs(chumk_image_path)
+    #     split_cubemap(img_file_cubemap, format_type=1, output_directory=chumk_image_path)
+    #     clean_files(image_folder_path, image_id, list_sides)
     return feature
+
+
+def clean_files(image_folder_path, image_id):
+    chumk_image_path = f"{image_folder_path}/{image_id}"
+
+    for file in glob.glob(f"{chumk_image_path}/*.jpg"):
+        side = Path(file).stem
+        os.rename(
+            f"{chumk_image_path}/{side}.jpg",
+            f"{image_folder_path}/{image_id}_{side}.jpg",
+        )
+
+    # for side in list_sides:
+    #     os.rename(
+    #         f"{chumk_image_path}/{sides_dict[side]}.jpg",
+    #         f"{image_folder_path}/{image_id}_{sides_dict[side]}.jpg",
+    #     )
+    # # Remove files
+    # if os.path.exists(chumk_image_path):
+    #     shutil.rmtree(chumk_image_path)
 
 
 def process_image(input_points, output_images_path, image_clip_size, cube_sides):
@@ -84,7 +136,7 @@ def process_image(input_points, output_images_path, image_clip_size, cube_sides)
     # Process in parallel
     results = Parallel(n_jobs=-1)(
         delayed(download_process_img)(
-            feature, output_images_path, image_clip_size,  cube_sides)
+            feature, output_images_path, image_clip_size, cube_sides)
         for feature in tqdm(features, desc=f"Processing images for...", total=len(features))
     )
     return features
@@ -108,11 +160,7 @@ def process_image(input_points, output_images_path, image_clip_size, cube_sides)
     default="1,2",
     type=str,
 )
-@click.option(
-    "--image_clip_size",
-    help="Image size of the image to clip",
-    default=512
-)
+@click.option("--image_clip_size", help="Image size of the image to clip", default=512)
 @click.option(
     "--output_images_path",
     help="Output images path",

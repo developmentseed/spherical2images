@@ -66,9 +66,6 @@ def download_process_img(feature, cube_sides):
     if len(list_sides) > 0:
         str_sides = ",".join(list_sides)
         os.system(f"sphericalpano2cube -d 512 -s {cube_sides} {img_file} {img_file}")
-
-    # TODO Upload to cloud provider
-
     return feature
 
 
