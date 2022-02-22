@@ -1,4 +1,3 @@
-from numpy import integer
 import requests
 import json
 import os
@@ -8,8 +7,9 @@ from tqdm import tqdm
 from cubemap_splitter import split_cubemap
 import os
 from pathlib import Path
-import shutil
 import glob
+from smart_open import open
+
 
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
