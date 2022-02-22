@@ -8,3 +8,6 @@ RUN pip install --upgrade --ignore-installed --no-cache-dir -r requirements.txt
 COPY . .
 COPY sphericalpano2cube.sh /usr/bin/sphericalpano2cube
 WORKDIR /mnt
+COPY points.py points.py
+COPY simplify_points.py simplify_points.py
+COPY clip_pano.py clip_pano.py

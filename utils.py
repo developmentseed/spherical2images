@@ -1,5 +1,5 @@
 def build_sequence(points):
-    # Build sequence linesans and save
+    # Build sequence lines and save
     sequences = {}
     points_sorted = sorted(points, key=lambda item: int(item["properties"]["captured_at"]))
     for point in points_sorted:

@@ -1,12 +1,14 @@
 version: '3'
 services:
-  spherical2cube:
-    image: devseed/spherical2cube:v1
+  mapimg:
+    image: devseed/mapimg:v1
     build:
       context: .
       dockerfile: Dockerfile
     environment:
         - MAPILLARY_ACCESS_TOKEN=${MAPILLARY_ACCESS_TOKEN}
+        - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+        - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     volumes:
         - ./:/mnt
     working_dir: /mnt
