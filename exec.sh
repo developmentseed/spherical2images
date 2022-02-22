@@ -2,14 +2,14 @@
 mkdir -p data
 
 ################ Download points and sequences ################
-# ./points.sh
+./points.sh
 
 ################ Simplify sequence ################
 # TODO
 
-
 ################ Simplify points ################
 ./simplify_points.sh
 
+################ Download and clip images ################
 
-################ Count number of points ################
+./clip_pano.sh

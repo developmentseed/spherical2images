@@ -10,5 +10,4 @@ $mapimg python clip_pano.py \
     --image_clip_size=512 \
     --output_points=data/Weatherby_images.geojson
 
-# aws s3 sync data/Weatherby s3://ds-data-projects/CPAL/mapillary/images/Weatherby/
- 
+aws s3 sync data/Weatherby s3://ds-data-projects/CPAL/mapillary/images/Weatherby/

@@ -26,24 +26,17 @@ python simplify_points.py \
     --output_points=data/Warrendale_simplify.geojson
 ```
 
-
-
 ### Clip Pano images
 
-
-docker-compose run mapimg bash
-python main.py --bbox=-83.2263319287,42.3489816308,-83.2230326577,42.3507715447
-
-### Or
-
-docker run -v $PWD:/mnt/data/ -e MAPILLARY_ACCESS_TOKEN=$MAPILLARY_ACCESS_TOKEN \
-    -it devseed/mapimg:v1 python /app/main.py
-
+```
+python clip_pano.py \
+    --input_points=data/Warrendale_simplify.geojson \
+    --output_images_path=data/Warrendale \
+    --image_clip_size=512 \
+    --output_points=data/Warrendale_images.geojson
+```
 
 
-
-
-mapimg
 
 ## Example:
 
