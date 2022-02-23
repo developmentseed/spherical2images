@@ -2,13 +2,13 @@
 
 Bunch of scripts to process and convert Mapillary spherical images into cube chunks for specific area.
 
-
 ## Buidl container
 
 ```sh
 export MAPILLARY_ACCESS_TOKEN="MLY|..."
 docker-compose build
 ```
+
 ### Download points from Mapillary
 
 ```sh
@@ -18,6 +18,7 @@ docker-compose build
     --bbox=-83.2469680005052,42.3289420003625,-83.2157740004676,42.3578449996934
 
 ```
+
 ### Simplify density of points
 
 ```
@@ -36,7 +37,10 @@ python clip_pano.py \
     --output_points=data/Warrendale_images.geojson
 ```
 
+For converting spherical-pano image into simple images, the script is using the following scripts:
 
+- https://github.com/sunset1995/py360convert , The script converts Equirectangular -> Cubemap images
+- https://github.com/paulburgess1357/Cubemap-Splitter, the script cut Cubemap images into simple images.
 
 ## Example:
 
