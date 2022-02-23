@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 mapimg="docker run -v $PWD:/mnt/ -e MAPILLARY_ACCESS_TOKEN=$MAPILLARY_ACCESS_TOKEN -it devseed/mapimg:v1"
 
-aws s3 sync s3://ds-data-projects/CPAL/mapillary/points_sequences/ data/
+aws s3 sync s3://urban-blight/detroit/mapillary/points_sequences/ data/
 
 $mapimg python simplify_points.py \
     --input_points=data/Warrendale_points_filter.geojson \
@@ -35,4 +35,4 @@ $mapimg python simplify_points.py \
     --input_points=data/Fiskhorn_points_filter.geojson \
     --output_points=data/Fiskhorn_simplify.geojson
 
-aws s3 sync data/ s3://ds-data-projects/CPAL/mapillary/points_sequences/
+aws s3 sync data/ s3://urban-blight/detroit/mapillary/points_sequences/

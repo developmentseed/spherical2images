@@ -44,4 +44,4 @@ $mapimg python points.py \
     --output_sequences=data/Fiskhorn_sequences.geojson \
     --bbox=-83.1969970002756,42.3508899996029,-83.1869110001331,42.3583479999578
 
-aws s3 sync data/ s3://ds-data-projects/CPAL/mapillary/points_sequences/
+aws s3 sync data/ s3://urban-blight/detroit/mapillary/points_sequences/

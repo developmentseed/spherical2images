@@ -62,10 +62,11 @@ def download_process_img(feature, output_images_path, image_clip_size):
             clean_files(image_folder_path, image_id)
             new_feature = feature
         except requests.exceptions.HTTPError as err:
-            raise SystemExit(err)
+            print(err)
         except OSError as err:
-            raise SystemExit(err)
-
+            print(err)
+        except KeyError as err:
+            print(err)
     else:
         print(f"File exist..{img_file_equirectangular}")
 
@@ -101,11 +102,11 @@ def process_image(input_points, output_images_path, image_clip_size):
     help="input points geojson file",
     default="data/input_points.geojson",
 )
-@click.option("--image_clip_size", help="Image size of the image to clip", default=512)
+@click.option("--image_clip_size", help="Image size of the image to clip", default=1024)
 @click.option(
     "--output_images_path",
     help="Output images path",
-    default="data/images",
+    default="data",
 )
 @click.option(
     "--output_points",
@@ -114,8 +115,9 @@ def process_image(input_points, output_images_path, image_clip_size):
 )
 def main(input_points, output_points, output_images_path, image_clip_size):
     output = process_image(input_points, output_images_path, image_clip_size)
+    features = [fea for fea in output if fea is not None]
     with open(output_points, "w") as f:
-        json.dump({"type": "FeatureCollection", "features": output}, f)
+        json.dump({"type": "FeatureCollection", "features": features}, f)
 
 
 if __name__ == "__main__":
