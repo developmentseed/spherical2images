@@ -5,7 +5,7 @@ mkdir -p data
 ./points.sh
 
 ################ Simplify sequence ################
-# TODO
+./simplify_sequence.sh
 
 ################ Simplify points ################
 ./simplify_points.sh
