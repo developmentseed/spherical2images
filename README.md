@@ -37,10 +37,9 @@ python clip_pano.py \
     --output_points=data/Warrendale_images.geojson
 ```
 
-For converting spherical-pano image into simple images, the script is using the following scripts:
+For converting spherical-pano image cubemap image, we are using the following script:
 
 - https://github.com/sunset1995/py360convert , The script converts Equirectangular -> Cubemap images
-- https://github.com/paulburgess1357/Cubemap-Splitter, the script cut Cubemap images into simple images.
 
 ## Example:
 

@@ -4,28 +4,28 @@ import os
 import click
 from joblib import Parallel, delayed
 from tqdm import tqdm
-from cubemap_splitter import split_cubemap
 import os
 from pathlib import Path
 import glob
 from smart_open import open
-
+from utils import cubemap_splitter
 
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
 
-def download_process_img(feature, output_images_path, image_clip_size):
+def download_process_img(feature, output_images_path, image_clip_size, cube_sides):
     """Download and clip the spherical image
 
     Args:
         feature (dict): feture
         output_images_path (str): path to save the images
         image_clip_size (int): Size of the image to clip
+        cube_sides (string): sides to process images
     Returns:
         [dict]: feature
     """
     sequence_id = feature["properties"]["sequence_id"]
-    image_folder_path = f"{output_images_path}/{sequence_id}"
+    image_folder_path = f"data/{sequence_id}"
     new_feature = None
     if not os.path.exists(image_folder_path):
         os.makedirs(image_folder_path)
@@ -37,38 +37,37 @@ def download_process_img(feature, output_images_path, image_clip_size):
     img_file_equirectangular = f"{image_folder_path}/{image_id}.jpg"
     img_file_cubemap = f"{image_folder_path}/{image_id}_cubemap.jpg"
 
-    if not os.path.isfile(img_file_equirectangular):
-        header = {"Authorization": "OAuth {}".format(access_token)}
-        url = "https://graph.mapillary.com/{}?fields=thumb_2048_url".format(image_id)
+    header = {"Authorization": "OAuth {}".format(access_token)}
+    url = "https://graph.mapillary.com/{}?fields=thumb_2048_url".format(image_id)
 
-        try:
-            r = requests.get(url, headers=header)
-            data = r.json()
-            image_url = data["thumb_2048_url"]
-            with open(img_file_equirectangular, "wb") as handler:
-                image_data = requests.get(image_url, stream=True).content
-                handler.write(image_data)
+    try:
+        r = requests.get(url, headers=header)
+        data = r.json()
+        image_url = data["thumb_2048_url"]
+        with open(img_file_equirectangular, "wb") as handler:
+            image_data = requests.get(image_url, stream=True).content
+            handler.write(image_data)
 
-            # Convert Equirectangular -> Cubemap
-            cmd = f"convert360 --convert e2c --i {img_file_equirectangular}  --o {img_file_cubemap} --w {image_clip_size}"
-            os.system(cmd)
+        # Convert Equirectangular -> Cubemap
+        cmd = f"convert360 --convert e2c --i {img_file_equirectangular}  --o {img_file_cubemap} --w {image_clip_size}"
+        os.system(cmd)
 
-            # Split Cubemap to simple images
-            chumk_image_path = f"{image_folder_path}/{image_id}"
-            if not os.path.exists(chumk_image_path):
-                os.makedirs(chumk_image_path)
-            split_cubemap(img_file_cubemap, format_type=1, output_directory=chumk_image_path)
-            # Rename files
-            clean_files(image_folder_path, image_id)
-            new_feature = feature
-        except requests.exceptions.HTTPError as err:
-            print(err)
-        except OSError as err:
-            print(err)
-        except KeyError as err:
-            print(err)
-    else:
-        print(f"File exist..{img_file_equirectangular}")
+        # Split Cubemap to simple images
+        chumk_image_path = f"{image_folder_path}/{image_id}"
+        if not os.path.exists(chumk_image_path):
+            os.makedirs(chumk_image_path)
+        cubemap_splitter(
+            img_file_cubemap, image_clip_size, sequence_id, image_id, output_images_path, cube_sides
+        )
+        # Rename files
+        clean_files(image_folder_path, image_id)
+        new_feature = feature
+    except requests.exceptions.HTTPError as err:
+        print(err)
+    except OSError as err:
+        print(err)
+    except KeyError as err:
+        print(err)
 
     return new_feature
 
@@ -83,14 +82,14 @@ def clean_files(image_folder_path, image_id):
         )
 
 
-def process_image(input_points, output_images_path, image_clip_size):
+def process_image(input_points, output_images_path, image_clip_size, cube_sides):
 
     with open(input_points, "r", encoding="utf8") as f:
         features = json.load(f)["features"]
 
     # Process in parallel
     results = Parallel(n_jobs=-1)(
-        delayed(download_process_img)(feature, output_images_path, image_clip_size)
+        delayed(download_process_img)(feature, output_images_path, image_clip_size, cube_sides)
         for feature in tqdm(features, desc=f"Processing images for...", total=len(features))
     )
     return features
@@ -113,8 +112,13 @@ def process_image(input_points, output_images_path, image_clip_size):
     help="output points for images that were processed",
     default="data/output_points.geojson",
 )
-def main(input_points, output_points, output_images_path, image_clip_size):
-    output = process_image(input_points, output_images_path, image_clip_size)
+@click.option(
+    "--cube_sides",
+    help="sides of the image to save",
+    default="right,left",
+)
+def main(input_points, output_points, output_images_path, image_clip_size, cube_sides):
+    output = process_image(input_points, output_images_path, image_clip_size, cube_sides)
     features = [fea for fea in output if fea is not None]
     with open(output_points, "w") as f:
         json.dump({"type": "FeatureCollection", "features": features}, f)
