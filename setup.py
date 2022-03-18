@@ -32,7 +32,7 @@ setup(
     entry_points={
         "console_scripts": [
             "get_mapillary_points = spherical2images.get_mapillary_points:main",
-            "clip_mapillary_pano = spherical2images.clip_mapillary_pano:main"
+            "clip_mapillary_pano = spherical2images.clip_mapillary_pano:main",
         ]
     },
     packages=find_packages(exclude=["docs", "tests*"]),

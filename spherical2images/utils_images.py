@@ -73,7 +73,7 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
         list: features
     """
     sequence_id = feature["properties"]["sequence_id"]
-    image_folder_path = f"data/{sequence_id}"
+    image_folder_path = f"{output_images_path}/{sequence_id}"
     new_feature = None
     if not os.path.exists(image_folder_path):
         os.makedirs(image_folder_path)
@@ -135,11 +135,11 @@ def clean_files(image_folder_path, image_id):
         )
 
 
-def process_image(input_file_points, output_images_path, image_clip_size, cube_sides):
+def process_image(features, output_images_path, image_clip_size, cube_sides):
     """Function to run in parallel mode to process mapillary images
 
     Args:
-        input_file_points (str): Location of mapillary points
+        features (fc): List of features objects
         output_images_path (str): Location to save clipped images
         image_clip_size (int): Size of the clipped image
         cube_sides (str): Sides of the image to clip
@@ -147,9 +147,6 @@ def process_image(input_file_points, output_images_path, image_clip_size, cube_s
     Returns:
         fc: List of points that images were processed
     """
-
-    with open(input_file_points, "r", encoding="utf8") as f:
-        features = json.load(f)["features"]
     # Process in parallel
     results = Parallel(n_jobs=-1)(
         delayed(download_clip_img)(
@@ -159,4 +156,4 @@ def process_image(input_file_points, output_images_path, image_clip_size, cube_s
             features, desc=f"Processing images for...", total=len(features)
         )
     )
-    return features
+    return results

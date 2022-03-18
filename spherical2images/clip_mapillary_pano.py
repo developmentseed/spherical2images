@@ -42,9 +42,10 @@ def main(
     image_clip_size,
     cube_sides,
 ):
-    output = process_image(
-        input_file_points, output_images_path, image_clip_size, cube_sides
-    )
+
+    with open(input_file_points, "r", encoding="utf8") as f:
+        features = json.load(f)["features"]
+    output = process_image(features, output_images_path, image_clip_size, cube_sides)
     features = [fea for fea in output if fea is not None]
     with open(output_file_points, "w") as f:
         json.dump({"type": "FeatureCollection", "features": features}, f)

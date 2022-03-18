@@ -2,6 +2,7 @@ import click
 import json
 from spherical2images.utils import get_mapillary_points_bbox, build_mapillary_sequence
 
+
 @click.command(short_help="Script to get points and sequence for a bbox from mapillary")
 @click.option(
     "--bbox",
@@ -20,15 +21,15 @@ from spherical2images.utils import get_mapillary_points_bbox, build_mapillary_se
     default="data/sequences.geojson",
     type=click.Path(),
 )
-def main(bbox, output_point, output_sequences):
+def main(bbox, output_file_point, output_file_sequence):
     bbox = [float(item) for item in bbox.split(",")]
     points = get_mapillary_points_bbox(bbox)
 
-    with open(output_point, "w") as f:
+    with open(output_file_point, "w") as f:
         json.dump({"type": "FeatureCollection", "features": points}, f)
 
     sequences = build_mapillary_sequence(points)
-    with open(output_sequences, "w") as f:
+    with open(output_file_sequence, "w") as f:
         json.dump({"type": "FeatureCollection", "features": sequences}, f)
 
 
