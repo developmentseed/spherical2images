@@ -1,7 +1,7 @@
 version: '3'
 services:
-  mapimg:
-    image: devseed/mapimg:v1
+  spherical2images:
+    image: developmentseed/spherical2images:v1
     build:
       context: .
       dockerfile: Dockerfile

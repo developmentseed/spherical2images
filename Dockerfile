@@ -9,3 +9,5 @@ WORKDIR /mnt
 RUN pip install awscli
 COPY . .
 WORKDIR /mnt
+RUN python setup.py install
+RUN python -m unittest

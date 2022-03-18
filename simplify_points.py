@@ -35,7 +35,9 @@ def main(input_points, output_points):
 
     new_points = []
     for sequence in sequences.values():
-        points_sorted = sorted(sequence, key=lambda item: int(item["properties"]["captured_at"]))
+        points_sorted = sorted(
+            sequence, key=lambda item: int(item["properties"]["captured_at"])
+        )
         for index, point in enumerate(points_sorted):
             if index == 0:
                 current_point = point
