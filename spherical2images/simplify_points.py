@@ -1,7 +1,7 @@
 import json
 import click
 import shapely.geometry
-
+from spherical2images.utils import read_geojson, write_geojson
 
 def distance(current_point, next_point):
     current_geo = shapely.geometry.shape(current_point["geometry"])
@@ -22,8 +22,7 @@ def distance(current_point, next_point):
     default="data/output_points.geojson",
 )
 def main(input_points, output_points):
-    with open(input_points, "r", encoding="utf8") as f:
-        features = json.load(f)["features"]
+    features = read_geojson(input_points)
     sequences = {}
     # Sort by sequence id
     for feature in features:
@@ -49,9 +48,7 @@ def main(input_points, output_points):
             if d > 0.0001:
                 current_point = next_point
             new_points.append(current_point)
-
-    with open(output_points, "w") as f:
-        json.dump({"type": "FeatureCollection", "features": new_points}, f)
+    write_geojson(output_points, new_points)
 
 
 if __name__ == "__main__":

@@ -142,3 +142,5 @@ sphericalpano2cube*.mpc
 
 .idea/
 data/
+.DS_Store
+tests/.DS_Store

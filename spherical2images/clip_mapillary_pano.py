@@ -9,12 +9,13 @@ from pathlib import Path
 import glob
 from smart_open import open
 from spherical2images.utils_images import process_image
+from spherical2images.utils import read_geojson, write_geojson
 
 
 @click.command(short_help="Script to convert 360 images to simple sides images")
 @click.option(
     "--input_file_points",
-    help="Input geojson file of points",
+    help="Input geojson file of Mapillary points",
     default="data/input_file_points.geojson",
 )
 @click.option(
@@ -43,12 +44,10 @@ def main(
     cube_sides,
 ):
 
-    with open(input_file_points, "r", encoding="utf8") as f:
-        features = json.load(f)["features"]
+    features = read_geojson(input_file_points)
     output = process_image(features, output_images_path, image_clip_size, cube_sides)
     features = [fea for fea in output if fea is not None]
-    with open(output_file_points, "w") as f:
-        json.dump({"type": "FeatureCollection", "features": features}, f)
+    write_geojson(output_file_points, features)
 
 
 if __name__ == "__main__":
