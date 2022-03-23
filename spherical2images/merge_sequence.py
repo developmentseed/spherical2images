@@ -55,11 +55,8 @@ def extra_data(features):
     return new_features
 
 
-
-
-
 def process_data(geojson_input, geojson_out):
-    """ Start processing sequence geojson files
+    """Start processing sequence geojson files
 
     Args:
         geojson_input (str): Location for geojson file

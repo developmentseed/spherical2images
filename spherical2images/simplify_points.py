@@ -3,6 +3,7 @@ import click
 import shapely.geometry
 from spherical2images.utils import read_geojson, write_geojson
 
+
 def distance(current_point, next_point):
     current_geo = shapely.geometry.shape(current_point["geometry"])
     next_geo = shapely.geometry.shape(next_point["geometry"])

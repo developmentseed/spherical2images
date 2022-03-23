@@ -3,7 +3,11 @@ import sys
 sys.path.append("..")
 import unittest
 import os
-from spherical2images.utils import get_mapillary_points_bbox, build_mapillary_sequence, write_geojson
+from spherical2images.utils import (
+    get_mapillary_points_bbox,
+    build_mapillary_sequence,
+    write_geojson,
+)
 
 
 class Test_points(unittest.TestCase):
@@ -13,9 +17,9 @@ class Test_points(unittest.TestCase):
         if access_token is not None:
             bbox = [-83.2263319287, 42.3489816308, -83.2230326577, 42.3507715447]
             fc_points = get_mapillary_points_bbox(bbox)
-            write_geojson("tests/fixtures/points.geojson",fc_points)
+            write_geojson("tests/fixtures/points.geojson", fc_points)
             fc_lines = build_mapillary_sequence(fc_points)
-            write_geojson("tests/fixtures/sequences.geojson",fc_lines)
+            write_geojson("tests/fixtures/sequences.geojson", fc_lines)
             # fc_points=[]
             # fc_lines=[]
             num_point = len(fc_points)
