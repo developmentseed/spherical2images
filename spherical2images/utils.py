@@ -8,6 +8,7 @@ import os
 import json
 from vt2geojson.tools import vt_bytes_to_geojson
 from geojson import FeatureCollection
+from shapely.geometry import shape
 
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
@@ -101,3 +102,19 @@ def write_geojson(output_file, list_features):
     """
     with open(output_file, "w") as f:
         json.dump(FeatureCollection(list_features), f)
+
+
+def check_geometry(feature):
+    """Verify if geometry is valid
+
+    Args:
+        feat (obj): Feature
+
+    Returns:
+        Bool: Return false or true acoording to the geometry
+    """
+    try:
+        geom_shape = shape(feature["geometry"])
+        return geom_shape.is_valid
+    except Exception:
+        return False

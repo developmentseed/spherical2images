@@ -126,6 +126,12 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
 
 
 def clean_files(image_folder_path, image_id):
+    """Remove files that was uploaded to s3, in order to optimize the fargate disk
+
+    Args:
+        image_folder_path (str): Location of the folder
+        image_id (str): Id of the image
+    """
     chumk_image_path = f"{image_folder_path}/{image_id}"
     for file in glob.glob(f"{chumk_image_path}/*.jpg"):
         side = Path(file).stem

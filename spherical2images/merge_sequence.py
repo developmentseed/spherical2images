@@ -4,6 +4,7 @@ from tqdm import tqdm
 from geojson.feature import FeatureCollection as fc
 from joblib import Parallel, delayed
 from shapely.geometry import shape, MultiLineString, mapping
+from spherical2images.utils import read_geojson, write_geojson, check_geometry
 
 
 def get_duplicates(l):
@@ -54,16 +55,17 @@ def extra_data(features):
     return new_features
 
 
-def check_geometry(feat):
-    try:
-        geom_shape = shape(feat["geometry"])
-        return geom_shape.is_valid
-    except Exception:
-        return False
+
 
 
 def process_data(geojson_input, geojson_out):
-    features = json.load(open(geojson_input, "r")).get("features")
+    """ Start processing sequence geojson files
+
+    Args:
+        geojson_input (str): Location for geojson file
+        geojson_out (str): Ouput location for geojson file
+    """
+    features = read_geojson(geojson_input)
     features = [i for i in features if check_geometry(i)]
 
     initial_objects = len(features)
@@ -104,7 +106,7 @@ def process_data(geojson_input, geojson_out):
     json.dump(fc(merge_lines_extra), open(geojson_out, "w"))
 
 
-@click.command(short_help="Script to merge sequences")
+@click.command(short_help="Script to merge line sequences")
 @click.option("--geojson_input", help="Input geojson file", type=str)
 @click.option("--geojson_out", help="Output geojson file", type=str)
 def run(geojson_input, geojson_out):
