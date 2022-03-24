@@ -4,14 +4,31 @@ from tqdm import tqdm
 from geojson.feature import FeatureCollection as fc
 from joblib import Parallel, delayed
 from shapely.geometry import shape, MultiLineString, mapping
+from spherical2images.utils import read_geojson, write_geojson, check_geometry
 
 
-def get_duplicates(l):
-    return list(dict.fromkeys(list(set([x for x in l if l.count(x) > 1]))))
+def get_duplicates(list_):
+    """filter duplicates values in a list
+
+    Args:
+        list_ (list): list of str
+    """
+    return list(dict.fromkeys(list(set([x for x in list_ if list_.count(x) > 1]))))
 
 
 def filter_data_dupicate(features_dict):
+    """Function to run in parallel mode to filter duplicate features and merge
+
+    Args:
+        features_dict (fc): Dict of features objects
+    """
+
     def merge_data(same_):
+        """Merge geometry
+
+        Args:
+            same_ (fc): feature object (point)
+        """
         try:
             same_shp = [shape(i["geometry"]) for i in same_]
             same_shp_line = [i for i in same_shp if i.geom_type == "LineString"]
@@ -37,7 +54,18 @@ def filter_data_dupicate(features_dict):
 
 
 def extra_data(features):
+    """Function to run in parallel mode to add extra fields
+
+    Args:
+        features (fc): List of features objects
+    """
+
     def add_extra_data(feature_):
+        """Add extra fields in properties from geometry
+
+        Args:
+            feature_ (dict): feature object
+        """
         geom_shape = shape(feature_["geometry"])
         feature_["properties"]["length"] = geom_shape.length
         feature_["properties"]["points"] = (
@@ -54,16 +82,14 @@ def extra_data(features):
     return new_features
 
 
-def check_geometry(feat):
-    try:
-        geom_shape = shape(feat["geometry"])
-        return geom_shape.is_valid
-    except Exception:
-        return False
-
-
 def process_data(geojson_input, geojson_out):
-    features = json.load(open(geojson_input, "r")).get("features")
+    """Start processing sequence geojson files
+
+    Args:
+        geojson_input (str): Pathfile for geojson input
+        geojson_out (str): Pathfile for geojson output
+    """
+    features = read_geojson(geojson_input)
     features = [i for i in features if check_geometry(i)]
 
     initial_objects = len(features)
@@ -104,9 +130,9 @@ def process_data(geojson_input, geojson_out):
     json.dump(fc(merge_lines_extra), open(geojson_out, "w"))
 
 
-@click.command(short_help="Script to merge sequences")
-@click.option("--geojson_input", help="Input geojson file", type=str)
-@click.option("--geojson_out", help="Output geojson file", type=str)
+@click.command(short_help="Script to merge line sequences")
+@click.option("--geojson_input", help="Pathfile for geojson input", type=str)
+@click.option("--geojson_out", help="Pathfile for geojson output ", type=str)
 def run(geojson_input, geojson_out):
     process_data(geojson_input, geojson_out)
 

@@ -1,9 +1,16 @@
 import json
 import click
 import shapely.geometry
+from spherical2images.utils import read_geojson, write_geojson
 
 
 def distance(current_point, next_point):
+    """calculate the distance between two points
+
+    Args:
+        current_point (dict): feature object (point)
+        next_point (dict): feature object (point)
+    """
     current_geo = shapely.geometry.shape(current_point["geometry"])
     next_geo = shapely.geometry.shape(next_point["geometry"])
     dist = current_geo.distance(next_geo)
@@ -13,17 +20,16 @@ def distance(current_point, next_point):
 @click.command(short_help="Script to get last updates for adapters")
 @click.option(
     "--input_points",
-    help="input points",
+    help="Pathfile for geojson input (points)",
     default="data/points.geojson",
 )
 @click.option(
     "--output_points",
-    help="output points",
+    help="Pathfile for geojson output (points)",
     default="data/output_points.geojson",
 )
 def main(input_points, output_points):
-    with open(input_points, "r", encoding="utf8") as f:
-        features = json.load(f)["features"]
+    features = read_geojson(input_points)
     sequences = {}
     # Sort by sequence id
     for feature in features:
@@ -35,7 +41,9 @@ def main(input_points, output_points):
 
     new_points = []
     for sequence in sequences.values():
-        points_sorted = sorted(sequence, key=lambda item: int(item["properties"]["captured_at"]))
+        points_sorted = sorted(
+            sequence, key=lambda item: int(item["properties"]["captured_at"])
+        )
         for index, point in enumerate(points_sorted):
             if index == 0:
                 current_point = point
@@ -47,9 +55,7 @@ def main(input_points, output_points):
             if d > 0.0001:
                 current_point = next_point
             new_points.append(current_point)
-
-    with open(output_points, "w") as f:
-        json.dump({"type": "FeatureCollection", "features": new_points}, f)
+    write_geojson(output_points, new_points)
 
 
 if __name__ == "__main__":
