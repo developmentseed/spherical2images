@@ -33,6 +33,9 @@ setup(
         "console_scripts": [
             "get_mapillary_points = spherical2images.get_mapillary_points:main",
             "clip_mapillary_pano = spherical2images.clip_mapillary_pano:main",
+            "merge_sequence = spherical2images.merge_sequence:run",
+            "simplify_sequence = spherical2images.simplify_sequence:run",
+            "match_point_sequence = spherical2images.match_point_sequence:run",
         ]
     },
     packages=find_packages(exclude=["docs", "tests*"]),
