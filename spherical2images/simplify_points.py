@@ -5,6 +5,12 @@ from spherical2images.utils import read_geojson, write_geojson
 
 
 def distance(current_point, next_point):
+    """calculate the distance between two points
+
+    Args:
+        current_point (dict): feature object (point)
+        next_point (dict): feature object (point)
+    """
     current_geo = shapely.geometry.shape(current_point["geometry"])
     next_geo = shapely.geometry.shape(next_point["geometry"])
     dist = current_geo.distance(next_geo)
