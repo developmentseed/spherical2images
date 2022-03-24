@@ -9,11 +9,28 @@ BUFFER = 0.00007
 
 
 def is_include(geom_a, geom_b):
+    """Determines if two polygons are included
+
+    Args:
+        geom_a (shape): geometries of the first polygon
+        geom_b (shape): geometries of the second polygon
+    """
     return geom_a.contains(geom_b) or geom_b.contains(geom_a)
 
 
 def shp_data(features):
+    """Function to run in parallel mode to add shapely geometry
+
+    Args:
+        features (fc): List of features objects
+    """
+
     def shp_data_feat(feature_):
+        """Add shapely geometry in feature
+
+        Args:
+            feature_ (dict): feature object
+        """
         geom_shape = shape(feature_["geometry"])
         shp_buff = geom_shape.buffer(BUFFER)
         feature_["geom"] = shp_buff
@@ -32,6 +49,12 @@ def shp_data(features):
 
 
 def find_intersection_override(features):
+    """Filter features by area, add is_exclude field
+
+    Args:
+        features (fc): List of features objects
+    """
+
     for idx_ in tqdm(range(len(features)), desc="filter by area "):
         feature_ = features[idx_]
         geom_feature = feature_["geom"]
@@ -80,7 +103,19 @@ def find_intersection_override(features):
 
 
 def remove_include(features):
+    """Function to run in parallel mode to remove features that have been included
+
+    Args:
+        features (fc): List of features objects
+    """
+
     def filter_incluse(features_, feature_):
+        """Remove feature its include in another geometry
+
+        Args:
+            features_ (fc): List of features objects
+            feature_ (dict): feature object
+        """
         geom_feat = feature_["geom"]
         is_include_ = any(
             [is_include(other_feat["geom"], geom_feat) for other_feat in features_]
@@ -97,7 +132,19 @@ def remove_include(features):
 
 
 def group_intersects(features):
+    """Function to run in parallel mode to add a field with all the features it intersects
+
+    Args:
+        features (fc): List of features objects
+    """
+
     def filter_intersetcs(features_, feature_):
+        """Adds a field with all the features it intersects
+
+        Args:
+            features_ (fc): List of features objects
+            feature_ (dict): feature
+        """
         geom_feat = feature_["geom"]
         id = feature_.get("id")
         intersetcs = []
@@ -118,6 +165,12 @@ def group_intersects(features):
 
 
 def process_data(geojson_input, geojson_out):
+    """Start the line simplification process
+
+    Args:
+        geojson_input (str):  Pathfile for geojson input
+        geojson_out (str):  Pathfile for geojson output
+    """
     features = json.load(open(geojson_input, "r")).get("features")
     stats = {"original size": len(features)}
     features = shp_data(features)

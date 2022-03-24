@@ -23,6 +23,13 @@ from spherical2images.utils import write_geojson
     type=click.Path(),
 )
 def main(bbox, output_file_point, output_file_sequence):
+    """Script to get points and sequence for a bbox from mapillary
+
+    Args:
+        bbox (str): bbox
+        output_file_point (str): Pathfile for geojson point file
+        output_file_sequence (str): Pathfile for geojson sequence file
+    """
     bbox = [float(item) for item in bbox.split(",")]
     points = get_mapillary_points_bbox(bbox)
     write_geojson(output_file_point, points)
