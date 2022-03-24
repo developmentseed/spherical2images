@@ -1,4 +1,4 @@
-# Spherical to simple images for Mapillary
+# Spherical to simple side images
 
 Bunch of scripts to process and convert Mapillary spherical images into cube imagen and then into simple images for specific area in Mapillary API.
 
