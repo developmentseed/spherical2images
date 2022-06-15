@@ -1,7 +1,4 @@
-import cv2
-from PIL import Image
 from smart_open import open
-import pathlib
 import mercantile
 import requests
 import os
@@ -13,16 +10,19 @@ from shapely.geometry import shape
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
 
-def get_mapillary_points_bbox(bbox):
+def get_mapillary_points_bbox(bbox, only_pano=True, timestamp_from=0):
     """Get a bbox and returns a feature list of mapillary points that are pano images
 
     Args:
         bbox (tuple): bounds area to get the points
-
+        only_pano (bool): flag to filter pano points
+        timestamp_from (int):
     Returns:
         list: list of features
     """
-    mapillary_URL = "https://tiles.mapillary.com/maps/vtp/{}/2/{}/{}/{}?access_token={}"
+    mapillary_URL = (
+        "https://tiles.mapillary.com/maps/vtp/{}/2/{}/{}/{}?access_token={}&"
+    )
     tile_coverage = "mly1_public"
     tile_layer = "image"
     west, south, east, north = bbox
@@ -40,8 +40,22 @@ def get_mapillary_points_bbox(bbox):
         for feature in data["features"]:
             lng = feature["geometry"]["coordinates"][0]
             lat = feature["geometry"]["coordinates"][1]
-            is_pano = feature["properties"]["is_pano"]
-            if lng > west and lng < east and lat > south and lat < north and is_pano:
+            # conditional cases
+            conditional = True
+            if only_pano:
+                conditional = feature["properties"]["is_pano"]
+            if timestamp_from:
+                conditional = conditional and bool(
+                    int(feature["properties"]["captured_at"]) >= timestamp_from
+                )
+
+            if (
+                lng > west
+                and lng < east
+                and lat > south
+                and lat < north
+                and conditional
+            ):
                 features.append(feature)
     return features
 
@@ -64,7 +78,10 @@ def build_mapillary_sequence(points):
         if sequence_id not in sequences.keys():
             sequences[sequence_id] = {
                 "type": "Feature",
-                "properties": {"sequence_id": sequence_id},
+                "properties": {
+                    "sequence_id": sequence_id,
+                    "is_pano": point["properties"]["is_pano"],
+                },
                 "geometry": {
                     "type": "LineString",
                     "coordinates": [point["geometry"]["coordinates"]],
