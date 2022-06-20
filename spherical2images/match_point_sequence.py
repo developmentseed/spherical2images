@@ -53,9 +53,9 @@ def poly_in_point(features, features_poly):
         for feature_poly in features_poly_:
             feature_poly_shape = feature_poly["geom"]
             feature_poly_seq = feature_poly["properties"]["sequence_id"]
-            is_intersects = feature_poly_shape.intersects(feature_shape)
-            if feature_seq == feature_poly_seq and is_intersects:
-                return feature_
+            if feature_seq == feature_poly_seq:
+                if feature_poly_shape.intersects(feature_shape):
+                    return feature_
         return None
 
     new_features = Parallel(n_jobs=-1, prefer="threads")(
@@ -77,6 +77,9 @@ def process_data(geojson_polygons, geojson_points, geojson_out):
     features_poly = shp_data(json.load(open(geojson_polygons)).get("features"))
     features_points = shp_data(json.load(open(geojson_points)).get("features"))
     filter_data = poly_in_point(features_points, features_poly)
+    # remove points duplicates
+    points_dict = {str(i['geom'].wkb_hex):i for i in filter_data}
+    filter_data = list(points_dict.values())
     for i in filter_data:
         if "geom" in i.keys():
             del i["geom"]

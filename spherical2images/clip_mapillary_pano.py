@@ -1,13 +1,4 @@
-import requests
-import json
-import os
 import click
-from joblib import Parallel, delayed
-from tqdm import tqdm
-import os
-from pathlib import Path
-import glob
-from smart_open import open
 from spherical2images.utils_images import process_image
 from spherical2images.utils import read_geojson, write_geojson
 

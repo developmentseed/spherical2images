@@ -32,7 +32,11 @@ def shp_data(features):
             feature_ (dict): feature object
         """
         geom_shape = shape(feature_["geometry"])
-        shp_buff = geom_shape.buffer(BUFFER)
+        is_pano = feature_["properties"].get("is_pano")
+        buffer_ = float(BUFFER)
+        if not is_pano:
+            buffer_ /= 3
+        shp_buff = geom_shape.buffer(buffer_)
         feature_["geom"] = shp_buff
         feature_["properties"]["area"] = (
             shp_buff.area
@@ -69,7 +73,7 @@ def find_intersection_override(features):
         if not is_exclude:
             area = geom_feature.area
 
-            for feat_menor in features[idx_ + 1 :]:
+            for feat_menor in features[idx_ + 1:]:
                 feat_menor_id = feat_menor.get("id")
                 # only intersetcs previus filter
                 if feat_menor_id not in ids_intersect:
@@ -125,7 +129,7 @@ def remove_include(features):
         return None
 
     new_features = Parallel(n_jobs=-1, prefer="threads")(
-        delayed(filter_incluse)(features[idx + 1 :], features[idx])
+        delayed(filter_incluse)(features[idx + 1:], features[idx])
         for idx in tqdm(list(range(len(features))), desc="remove includes")
     )
     return [i for i in new_features if i]
