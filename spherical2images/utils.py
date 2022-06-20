@@ -1,3 +1,4 @@
+from matplotlib import docstring
 from smart_open import open
 import mercantile
 import requests
@@ -5,21 +6,50 @@ import os
 import json
 from vt2geojson.tools import vt_bytes_to_geojson
 from geojson import FeatureCollection
-from shapely.geometry import shape
-
+from shapely.geometry import shape, Point
+from tqdm import tqdm
+from joblib import Parallel, delayed
+from itertools import chain
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
 
-def get_mapillary_points_bbox(bbox, only_pano=True, timestamp_from=0):
+def get_mapillary_points_bbox(
+    bbox, only_pano=True, timestamp_from=0, geom=None, name_file=""
+):
     """Get a bbox and returns a feature list of mapillary points that are pano images
 
     Args:
         bbox (tuple): bounds area to get the points
         only_pano (bool): flag to filter pano points
-        timestamp_from (int):
+        timestamp_from (int): date in timestamp to filter
+        geom (object): geometry from shapely
+        name_file (str): file name for description
     Returns:
         list: list of features
     """
+
+    def filter_feature(feature_, bbox_, geom_, only_pano_, timestamp_from_):
+        """Run in parallel"""
+        west, south, east, north = bbox_
+
+        lng = feature_["geometry"]["coordinates"][0]
+        lat = feature_["geometry"]["coordinates"][1]
+        # conditional cases
+        conditional = True
+        if only_pano_:
+            conditional = feature_["properties"]["is_pano"]
+        if timestamp_from_:
+            conditional = conditional and bool(
+                int(feature_["properties"]["captured_at"]) >= timestamp_from_
+            )
+        if geom_:
+            if conditional and geom_.contains(shape(feature_["geometry"])):
+                return feature_
+            return None
+        elif lng > west and lng < east and lat > south and lat < north and conditional:
+            return feature_
+        return None
+
     mapillary_URL = (
         "https://tiles.mapillary.com/maps/vtp/{}/2/{}/{}/{}?access_token={}&"
     )
@@ -28,7 +58,7 @@ def get_mapillary_points_bbox(bbox, only_pano=True, timestamp_from=0):
     west, south, east, north = bbox
     tiles = list(mercantile.tiles(west, south, east, north, 14))
     features = []
-    for tile in tiles:
+    for tile in tqdm(tiles, desc=f"download data {name_file}"):
         tile_url = mapillary_URL.format(
             tile_coverage, tile.z, tile.x, tile.y, access_token
         )
@@ -37,27 +67,15 @@ def get_mapillary_points_bbox(bbox, only_pano=True, timestamp_from=0):
             response.content, tile.x, tile.y, tile.z, layer=tile_layer
         )
         # Filter pano images in the area
-        for feature in data["features"]:
-            lng = feature["geometry"]["coordinates"][0]
-            lat = feature["geometry"]["coordinates"][1]
-            # conditional cases
-            conditional = True
-            if only_pano:
-                conditional = feature["properties"]["is_pano"]
-            if timestamp_from:
-                conditional = conditional and bool(
-                    int(feature["properties"]["captured_at"]) >= timestamp_from
-                )
+        features_tmp = Parallel(n_jobs=-1, prefer="threads")(
+            delayed(filter_feature)(feature_, bbox, geom, only_pano, timestamp_from)
+            for feature_ in data["features"]
+        )
+        # clean features
+        features_tmp = [i for i in features_tmp if i]
+        features.append(features_tmp)
 
-            if (
-                lng > west
-                and lng < east
-                and lat > south
-                and lat < north
-                and conditional
-            ):
-                features.append(feature)
-    return features
+    return list(chain.from_iterable(features))
 
 
 def build_mapillary_sequence(points):
