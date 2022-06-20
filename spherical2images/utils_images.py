@@ -9,6 +9,7 @@ from smart_open import open
 import cv2
 from PIL import Image
 from smart_open import open
+import lensfunpy
 
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
@@ -79,33 +80,19 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
 
     # request the URL of each image
     image_id = feature["properties"]["id"]
-    is_pano = feature["properties"].get("is_pano")
 
     # Check if mapillary image exist and download
     img_file_equirectangular = f"{image_folder_path}/{image_id}.jpg"
     img_file_cubemap = f"{image_folder_path}/{image_id}_cubemap.jpg"
 
     header = {"Authorization": "OAuth {}".format(access_token)}
-    url = "https://graph.mapillary.com/{}?fields=thumb_2048_url".format(image_id)
-    # downloa no pano photo
-    if not is_pano:
-        try:
-            chunk_img_path = f"{output_images_path}/{sequence_id}/{image_id}_normal.jpg"
-            r = requests.get(url, headers=header)
-            data = r.json()
-            image_url = data["thumb_2048_url"]
-            with open(chunk_img_path, "wb") as handler:
-                image_data = requests.get(image_url, stream=True).content
-                handler.write(image_data)
-            clean_files(image_folder_path, image_id)
-            return feature
-        except requests.exceptions.HTTPError as err:
-            print(err)
-
+    url = "https://graph.mapillary.com/{}?fields=thumb_1024_url".format(image_id)
+    print(url)
     try:
         r = requests.get(url, headers=header)
         data = r.json()
-        image_url = data["thumb_2048_url"]
+        image_url = data["thumb_1024_url"]
+        print(image_url)
         with open(img_file_equirectangular, "wb") as handler:
             image_data = requests.get(image_url, stream=True).content
             handler.write(image_data)
@@ -177,3 +164,26 @@ def process_image(features, output_images_path, image_clip_size, cube_sides):
         )
     )
     return results
+
+
+def correct_image(image_path, cam, len, focal_length, aperture, distance):
+    """Correct fisheye image
+
+    Args:
+        image_path (str): localtion of the image
+        cam (camera model): camera model
+        len (lents model): lens model
+        focal_length (int): focal_length
+        aperture (int): aperture
+        distance (int): distance
+
+    Returns:
+        cv2 image array
+    """
+    im = cv2.imread(image_path)
+    height, width = im.shape[0], im.shape[1]
+    mod = lensfunpy.Modifier(len, cam.crop_factor, width, height)
+    mod.initialize(focal_length, aperture, distance)
+    undist_coords = mod.apply_geometry_distortion()
+    im_undistorted = cv2.remap(im, undist_coords, None, cv2.INTER_LANCZOS4)
+    return im_undistorted

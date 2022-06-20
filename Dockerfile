@@ -8,4 +8,4 @@ RUN pip install --upgrade --ignore-installed --no-cache-dir -r requirements.txt
 RUN pip install awscli
 COPY . .
 RUN python setup.py install
-RUN python -m unittest
+# RUN python -m unittest

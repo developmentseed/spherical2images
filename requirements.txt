@@ -13,4 +13,7 @@ smart-open==5.2.1
 smart_open[s3]
 geojson==2.5.0
 shapely==1.8.1.post1
-protobuf==3.20.1
+protobuf==3.20.*
+lensfunpy
+imageio
+
