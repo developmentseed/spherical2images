@@ -79,6 +79,7 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
 
     # request the URL of each image
     image_id = feature["properties"]["id"]
+    is_pano = feature["properties"].get("is_pano")
 
     # Check if mapillary image exist and download
     img_file_equirectangular = f"{image_folder_path}/{image_id}.jpg"
@@ -86,6 +87,20 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
 
     header = {"Authorization": "OAuth {}".format(access_token)}
     url = "https://graph.mapillary.com/{}?fields=thumb_2048_url".format(image_id)
+    # downloa no pano photo
+    if not is_pano:
+        try:
+            chunk_img_path = f"{output_images_path}/{sequence_id}/{image_id}_normal.jpg"
+            r = requests.get(url, headers=header)
+            data = r.json()
+            image_url = data["thumb_2048_url"]
+            with open(chunk_img_path, "wb") as handler:
+                image_data = requests.get(image_url, stream=True).content
+                handler.write(image_data)
+            clean_files(image_folder_path, image_id)
+            return feature
+        except requests.exceptions.HTTPError as err:
+            print(err)
 
     try:
         r = requests.get(url, headers=header)
