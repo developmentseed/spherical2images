@@ -1,11 +1,9 @@
 import requests
-import os
 from joblib import Parallel, delayed
 from tqdm import tqdm
 import os
 from pathlib import Path
 import glob
-from smart_open import open
 import cv2
 from PIL import Image
 from smart_open import open
@@ -87,12 +85,12 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
 
     header = {"Authorization": "OAuth {}".format(access_token)}
     url = "https://graph.mapillary.com/{}?fields=thumb_1024_url".format(image_id)
-    print(url)
+
     try:
         r = requests.get(url, headers=header)
         data = r.json()
         image_url = data["thumb_1024_url"]
-        print(image_url)
+
         with open(img_file_equirectangular, "wb") as handler:
             image_data = requests.get(image_url, stream=True).content
             handler.write(image_data)
@@ -173,8 +171,8 @@ def correct_image(image_path, cam, len, focal_length, aperture, distance):
         image_path (str): localtion of the image
         cam (camera model): camera model
         len (lents model): lens model
-        focal_length (int): focal_length
-        aperture (int): aperture
+        focal_length (float): focal_length
+        aperture (float): aperture
         distance (int): distance
 
     Returns:

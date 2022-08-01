@@ -13,9 +13,7 @@ from spherical2images.utils import read_geojson, write_geojson
     "--image_clip_size", help="Image size for each image to be clipped", default=1024
 )
 @click.option(
-    "--output_images_path",
-    help="Output images path",
-    default="data",
+    "--output_images_path", help="Output images path", default="data",
 )
 @click.option(
     "--output_file_points",
@@ -23,9 +21,7 @@ from spherical2images.utils import read_geojson, write_geojson
     default="data/output_file_points.geojson",
 )
 @click.option(
-    "--cube_sides",
-    help="Sides of the image to save",
-    default="right,left",
+    "--cube_sides", help="Sides of the image to save", default="right,left",
 )
 def main(
     input_file_points,

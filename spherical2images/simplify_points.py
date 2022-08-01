@@ -1,19 +1,17 @@
-import json
 import click
-import shapely.geometry
-from spherical2images.utils import read_geojson, write_geojson
+import random
+from spherical2images.utils import read_geojson, write_geojson, geom_data
+from copy import deepcopy
 
 
 def distance(current_point, next_point):
     """calculate the distance between two points
 
     Args:
-        current_point (dict): feature object (point)
-        next_point (dict): feature object (point)
+        current_point (geom): feature object (point)
+        next_point (geom): feature object (point)
     """
-    current_geo = shapely.geometry.shape(current_point["geometry"])
-    next_geo = shapely.geometry.shape(next_point["geometry"])
-    dist = current_geo.distance(next_geo)
+    dist = current_point.distance(next_point)
     return dist
 
 
@@ -30,14 +28,14 @@ def distance(current_point, next_point):
 )
 def main(input_points, output_points):
     features = read_geojson(input_points)
+    features = geom_data(features)
     sequences = {}
     # Sort by sequence id
     for feature in features:
         sequence_id = str(feature["properties"]["sequence_id"])
         if sequence_id not in sequences.keys():
-            sequences[sequence_id] = [feature]
-        else:
-            sequences[sequence_id].append(feature)
+            sequences[sequence_id] = []
+        sequences[sequence_id].append(feature)
 
     new_points = []
     for sequence in sequences.values():
@@ -51,11 +49,25 @@ def main(input_points, output_points):
                 next_point = point
             else:
                 next_point = points_sorted[index + 1]
-            d = distance(current_point, next_point)
+            d = distance(current_point.get("geom"), next_point.get("geom"))
             if d > 0.0001:
                 current_point = next_point
-            new_points.append(current_point)
-    write_geojson(output_points, new_points)
+            new_points.append(deepcopy(current_point))
+
+    # remove points duplicates
+    points_dict = {str(i["geom"].wkb_hex): i for i in new_points}
+    filter_data = list(points_dict.values())
+    # random.shuffle(filter_data)
+
+    for i in filter_data:
+        if "geom" in i.keys():
+            del i["geom"]
+    print("===================")
+    print("Simplify points")
+    print("initial data", len(features))
+    print("result data", len(filter_data))
+
+    write_geojson(output_points, filter_data)
 
 
 if __name__ == "__main__":

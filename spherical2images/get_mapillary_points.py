@@ -42,6 +42,13 @@ def add_name_path(path_, name_):
     is_flag=True,
 )
 @click.option(
+    "--organization_ids",
+    help="organization id filter",
+    default="",
+    type=str,
+    required=False,
+)
+@click.option(
     "--output_file_point",
     help="Pathfile for geojson point file",
     default="data/points.geojson",
@@ -54,13 +61,14 @@ def add_name_path(path_, name_):
     type=click.Path(),
 )
 def main(
-        bbox,
-        geojson_boundaries,
-        field_name,
-        timestamp_from,
-        only_pano,
-        output_file_point,
-        output_file_sequence,
+    bbox,
+    geojson_boundaries,
+    field_name,
+    timestamp_from,
+    only_pano,
+    organization_ids,
+    output_file_point,
+    output_file_sequence,
 ):
     """Script to get points and sequence for a bbox from mapillary
 
@@ -113,6 +121,14 @@ def main(
         total = len(points)
         pano = [i for i in points if i.get("properties").get("is_pano")]
         no_pano = [i for i in points if not i.get("properties").get("is_pano")]
+        if organization_ids:
+            no_pano = [
+                i
+                for i in no_pano
+                if str(i.get("properties").get("organization_id", "--"))
+                in organization_ids.split(",")
+            ]
+
         total_no_pano += len(no_pano)
         total_pano += len(pano)
 
@@ -122,8 +138,16 @@ def main(
         print("pano", len(pano))
         print("no pano", len(no_pano))
         # separate points
-        write_geojson(boundarie.get("output_file_point").replace(".geojson", "__pano.geojson"), pano)
-        write_geojson(boundarie.get("output_file_point").replace(".geojson", "__no__pano.geojson"), no_pano)
+        write_geojson(
+            boundarie.get("output_file_point").replace(".geojson", "__pano.geojson"),
+            pano,
+        )
+        write_geojson(
+            boundarie.get("output_file_point").replace(
+                ".geojson", "__no__pano.geojson"
+            ),
+            no_pano,
+        )
 
         sequences_pano = build_mapillary_sequence(pano)
         sequences_no_pano = build_mapillary_sequence(no_pano)
@@ -131,11 +155,19 @@ def main(
         print("total sequences pano", len(sequences_pano))
         print("total sequences no pano", len(sequences_no_pano))
 
-        write_geojson(boundarie.get("output_file_sequence").replace(".geojson", "__pano.geojson"), sequences_pano)
-        write_geojson(boundarie.get("output_file_sequence").replace(".geojson", "__no__pano.geojson"), sequences_no_pano)
+        write_geojson(
+            boundarie.get("output_file_sequence").replace(".geojson", "__pano.geojson"),
+            sequences_pano,
+        )
+        write_geojson(
+            boundarie.get("output_file_sequence").replace(
+                ".geojson", "__no__pano.geojson"
+            ),
+            sequences_no_pano,
+        )
 
-    print("="*10)
-    print("="*10)
+    print("=" * 10)
+    print("=" * 10)
     print("pano", total_pano)
     print("no pano", total_no_pano)
 

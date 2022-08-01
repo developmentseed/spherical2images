@@ -18,24 +18,21 @@ def is_include(geom_a, geom_b):
     return geom_a.contains(geom_b) or geom_b.contains(geom_a)
 
 
-def shp_data(features):
+def shp_data(features, buffer):
     """Function to run in parallel mode to add shapely geometry
 
     Args:
         features (fc): List of features objects
     """
 
-    def shp_data_feat(feature_):
+    def shp_data_feat(feature_, buffer_):
         """Add shapely geometry in feature
 
         Args:
             feature_ (dict): feature object
         """
         geom_shape = shape(feature_["geometry"])
-        is_pano = feature_["properties"].get("is_pano")
-        buffer_ = float(BUFFER)
-        if not is_pano:
-            buffer_ /= 3
+
         shp_buff = geom_shape.buffer(buffer_)
         feature_["geom"] = shp_buff
         feature_["properties"]["area"] = (
@@ -47,7 +44,8 @@ def shp_data(features):
         return feature_
 
     new_features = Parallel(n_jobs=-1)(
-        delayed(shp_data_feat)(feature) for feature in tqdm(features, desc="shp data")
+        delayed(shp_data_feat)(feature, buffer)
+        for feature in tqdm(features, desc="shp data")
     )
     return list(sorted(new_features, key=lambda x: -x["properties"].get("length")))
 
@@ -122,7 +120,8 @@ def remove_include(features):
         """
         geom_feat = feature_["geom"]
         is_include_ = any(
-            [is_include(other_feat["geom"], geom_feat) for other_feat in features_]
+            [is_include(other_feat["geom"], geom_feat)
+             for other_feat in features_]
         )
         if not is_include_:
             return feature_
@@ -168,7 +167,7 @@ def group_intersects(features):
     return new_features
 
 
-def process_data(geojson_input, geojson_out):
+def process_data(geojson_input, buffer, geojson_out):
     """Start the line simplification process
 
     Args:
@@ -177,7 +176,7 @@ def process_data(geojson_input, geojson_out):
     """
     features = json.load(open(geojson_input, "r")).get("features")
     stats = {"original size": len(features)}
-    features = shp_data(features)
+    features = shp_data(features, buffer)
     # features no include
     features = remove_include(features)
     stats["features no include"] = len(features)
@@ -213,9 +212,10 @@ def process_data(geojson_input, geojson_out):
 
 @click.command(short_help="Script to simplify sequence by buffer")
 @click.option("--geojson_input", help="Input geojso file", type=str)
+@click.option("--buffer", help="Input the buffer size", type=float, default=BUFFER)
 @click.option("--geojson_out", help="Output geojso file", type=str)
-def run(geojson_input, geojson_out):
-    process_data(geojson_input, geojson_out)
+def run(geojson_input, buffer, geojson_out):
+    process_data(geojson_input, buffer, geojson_out)
 
 
 if __name__ == "__main__":

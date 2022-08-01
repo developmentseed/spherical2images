@@ -1,4 +1,3 @@
-from matplotlib import docstring
 from smart_open import open
 import mercantile
 import requests
@@ -10,6 +9,8 @@ from shapely.geometry import shape, Point
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from itertools import chain
+import random
+
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
 
@@ -68,7 +69,8 @@ def get_mapillary_points_bbox(
         )
         # Filter pano images in the area
         features_tmp = Parallel(n_jobs=-1, prefer="threads")(
-            delayed(filter_feature)(feature_, bbox, geom, only_pano, timestamp_from)
+            delayed(filter_feature)(feature_, bbox,
+                                    geom, only_pano, timestamp_from)
             for feature_ in data["features"]
         )
         # clean features
@@ -78,7 +80,7 @@ def get_mapillary_points_bbox(
     return list(chain.from_iterable(features))
 
 
-def build_mapillary_sequence(points):
+def build_mapillary_sequence(points, fetch_points=False):
     """Build sequence  using points, return linestring
 
     Args:
@@ -93,24 +95,84 @@ def build_mapillary_sequence(points):
     )
     for point in points_sorted:
         sequence_id = str(point["properties"]["sequence_id"])
+        id = str(point["properties"]["id"])
+
         if sequence_id not in sequences.keys():
             sequences[sequence_id] = {
                 "type": "Feature",
                 "properties": {
                     "sequence_id": sequence_id,
                     "is_pano": point["properties"]["is_pano"],
+                    "images_id": [],
                 },
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [point["geometry"]["coordinates"]],
-                },
+                "geometry": {"type": "LineString", "coordinates": [], },
             }
-        else:
-            sequences[sequence_id]["geometry"]["coordinates"].append(
-                point["geometry"]["coordinates"]
-            )
+        sequences[sequence_id]["geometry"]["coordinates"].append(
+            point["geometry"]["coordinates"]
+        )
+        sequences[sequence_id]["properties"]["images_id"].append(id)
+    sequences = list(sequences.values())
+    for seq in sequences:
+        seq["properties"]["total_points"] = seq["geometry"]["coordinates"].__len__()
+        images_id = list(seq["properties"]["images_id"])
+        step = int(len(images_id) * 10 / 100)
+        if step < 10:
+            step = 1
+        seq["properties"]["images_id"] = ",".join(
+            [
+                i
+                for (k, i) in enumerate(images_id)
+                if k in list(range(0, len(images_id), step))
+            ]
+        )
 
-    return list(sequences.values())
+    if fetch_points:
+        header = {"Authorization": f"OAuth {access_token}"}
+
+        def fetch_url_images(feature):
+            feature["properties"]["custom_url"] = ""
+            feature["properties"]["custom_urls"] = ""
+
+            try:
+                total_images_list = feature["properties"].get(
+                    "images_id").split(",")
+                if len(total_images_list) <= 5:
+                    images_filter = total_images_list
+                else:
+                    images_filter = list(
+                        dict.fromkeys(
+                            list(random.sample(total_images_list, 5)))
+                    )
+
+                list_urls = []
+
+                for image_ in images_filter:
+                    try:
+                        url = "https://graph.mapillary.com/{}?fields=thumb_1024_url".format(
+                            image_
+                        )
+                        r = requests.get(url, headers=header, timeout=5)
+                        data = r.json()
+                        list_urls.append(data["thumb_1024_url"])
+                    except Exception as ex_:
+                        print("ex_", ex_)
+
+                image_select = random.choice(list_urls)
+                feature["properties"]["custom_url"] = image_select
+                feature["properties"]["custom_urls"] = ",".join(
+                    [i for i in list_urls if i != image_select]
+                )
+            except Exception as ex:
+                print("ex", ex)
+            return feature
+
+        new_sequences = Parallel(n_jobs=-1)(
+            delayed(fetch_url_images)(feature)
+            for feature in tqdm(sequences, desc="download images")
+        )
+        sequences = new_sequences
+
+    return list(sequences)
 
 
 def read_geojson(input_file):
@@ -153,3 +215,26 @@ def check_geometry(feature):
         return geom_shape.is_valid
     except Exception:
         return False
+
+
+def geom_data(features):
+    """Function to run in parallel mode to add shapely geometry
+
+    Args:
+        features (fc): List of features objects
+    """
+
+    def geom_data_feat(feature_):
+        """Add shapely geometry in feature
+
+        Args:
+            feature_ (dict): feature object
+        """
+        geom_shape = shape(feature_["geometry"])
+        feature_["geom"] = geom_shape
+        return feature_
+
+    new_features = Parallel(n_jobs=-1)(
+        delayed(geom_data_feat)(feature) for feature in tqdm(features, desc="geom data")
+    )
+    return new_features

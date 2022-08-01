@@ -35,7 +35,10 @@ setup(
             "clip_mapillary_pano = spherical2images.clip_mapillary_pano:main",
             "merge_sequence = spherical2images.merge_sequence:run",
             "simplify_sequence = spherical2images.simplify_sequence:run",
+            "simplify_points = spherical2images.simplify_points:main",
+            "lens_correction = spherical2images.lens_correction:main",
             "match_point_sequence = spherical2images.match_point_sequence:run",
+            "create_custom_sequences = spherical2images.create_custom_sequences:run",
         ]
     },
     packages=find_packages(exclude=["docs", "tests*"]),

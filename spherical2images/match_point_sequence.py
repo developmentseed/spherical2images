@@ -3,34 +3,10 @@ import json
 from tqdm import tqdm
 from geojson.feature import FeatureCollection as fc
 from joblib import Parallel, delayed
-from shapely.geometry import shape
-
+from spherical2images.utils import geom_data
 import logging
 
 logger = logging.getLogger("__name__")
-
-
-def shp_data(features):
-    """Function to run in parallel mode to add shapely geometry
-
-    Args:
-        features (fc): List of features objects
-    """
-
-    def shp_data_feat(feature_):
-        """Add shapely geometry in feature
-
-        Args:
-            feature_ (dict): feature object
-        """
-        geom_shape = shape(feature_["geometry"])
-        feature_["geom"] = geom_shape
-        return feature_
-
-    new_features = Parallel(n_jobs=-1)(
-        delayed(shp_data_feat)(feature) for feature in tqdm(features, desc="shp data")
-    )
-    return new_features
 
 
 def poly_in_point(features, features_poly):
@@ -74,18 +50,24 @@ def process_data(geojson_polygons, geojson_points, geojson_out):
         geojson_out (str):  Pathfile for geojson output (points)
     """
 
-    features_poly = shp_data(json.load(open(geojson_polygons)).get("features"))
-    features_points = shp_data(json.load(open(geojson_points)).get("features"))
-    filter_data = poly_in_point(features_points, features_poly)
+    features_poly = geom_data(json.load(open(geojson_polygons)).get("features"))
+    features_points = geom_data(json.load(open(geojson_points)).get("features"))
+    list_sequences = list([i["properties"]["sequence_id"] for i in features_poly])
+    points_in_dequence = list(
+        [i for i in features_points if i["properties"]["sequence_id"] in list_sequences]
+    )
+
+    filter_data = poly_in_point(points_in_dequence, features_poly)
     # remove points duplicates
-    points_dict = {str(i['geom'].wkb_hex):i for i in filter_data}
+    points_dict = {str(i["geom"].wkb_hex): i for i in filter_data}
     filter_data = list(points_dict.values())
     for i in filter_data:
         if "geom" in i.keys():
             del i["geom"]
     print("==========")
-    print("original_data ", len(features_points))
-    print("total_filter ", len(filter_data))
+    print("initial points ", len(features_points))
+    print("points in sequence ", len(points_in_dequence))
+    print("Points filter (spatial - seq) ", len(filter_data))
     json.dump(fc(filter_data), open(geojson_out, "w"))
 
 
