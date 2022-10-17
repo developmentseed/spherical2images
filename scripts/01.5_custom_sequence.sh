@@ -18,5 +18,5 @@ for priority in $priorities; do
 
 done
 
-# upload check files
+# upload check files, review is a manual process
 # aws s3 cp $outputDir/${priority}_sequences_custom__no__pano_check.geojson s3://urban-blight/dallas/mapillary/points_sequences/${priority}_sequences_custom__no__pano_check.geojson 
