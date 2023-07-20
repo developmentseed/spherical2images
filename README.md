@@ -11,13 +11,28 @@ docker-compose build
 
 ### Download points from Mapillary into geojson file
 
-```sh
-docker run -v $PWD:/mnt/ -e MAPILLARY_ACCESS_TOKEN=$MAPILLARY_ACCESS_TOKEN -it developmentseed/spherical2images:v1 \
-    get_mapillary_points \
-        --output_file_point=data/Warrendale_points.geojson \
-        --output_file_sequence=data/Warrendale_sequences.geojson \
-        --bbox=-83.2469680005052,42.3289420003625,-83.2157740004676,42.3578449996934
 ```
+bash ./01_get_mapillary_points.sh
+```
+
+From the 01_get_mapillary_points bash:
+
+| COMMAND                 | REQUIRED | DESCRIPTION                                              |
+| -----------------       | -------- | -------------------------------------------------        |
+| --output_file_point     | no       | point file path                                          |
+| --output_file_sequence  | no       | sequence file path                                       |
+| --bbox(*)               | no       | boundary bbox                                            |
+| --geojson_boundaries(*) | no       | boundary (this file could contain many boundaries)       |
+| --field_name            | no       | a field name from GeoJSON boundaries                     |
+| --organization_ids(**)  | no       | filter by organization id from Mapillary                 |
+| --timestamp_from(***)   | no       | filter by timestamp in milliseconds                      |
+| --only_pano             | no       | filter by panoramic image                                |
+
+( * ) These two commands are excludable, if one is used the other is no longer used.
+
+( ** ) Download the short area in order to recognize the organization id, after check out if the organization id belongs to the required organization `https://graph.mapillary.com/$ORGANIZATION_ID?access_token=$TOKEN&fields=name`.
+
+( *** ) Convert the human date to timestamp (milliseconds) [here](https://www.epochconverter.com/). 
 
 ### Simplify density of points
 
