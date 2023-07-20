@@ -29,13 +29,13 @@ def add_name_path(path_, name_):
 @click.option(
     "--geojson_boundaries", help="geojson_boundaries", default="", required=False
 )
-@click.option("--field_name", help="field_name", default="", required=False)
+@click.option("--field_name", help="a field name from geojson boundaries", default="", required=False)
 @click.option(
-    "--timestamp_from", help="timestamp_from", default=0, type=int, required=False
+    "--timestamp_from", help="timestamp_from value in milliseconds", default=0, type=int, required=False
 )
 @click.option(
     "--only_pano",
-    help="timestamp_from",
+    help="get only pano images",
     default=False,
     type=bool,
     required=False,
@@ -120,56 +120,62 @@ def main(
         )
         total = len(points)
         pano = [i for i in points if i.get("properties").get("is_pano")]
-        no_pano = [i for i in points if not i.get("properties").get("is_pano")]
-        if organization_ids:
-            no_pano = [
-                i
-                for i in no_pano
-                if str(i.get("properties").get("organization_id", "--"))
-                in organization_ids.split(",")
-            ]
-
-        total_no_pano += len(no_pano)
-        total_pano += len(pano)
 
         print("=" * 10)
         print("city", boundarie.get("name_file"))
         print("total points", total)
         print("pano", len(pano))
-        print("no pano", len(no_pano))
-        # separate points
+
+        total_pano += len(pano)
+
+        if not only_pano:
+            no_pano = [i for i in points if not i.get("properties").get("is_pano")]
+
+            if organization_ids:
+                no_pano = [
+                    i
+                    for i in no_pano
+                    if str(i.get("properties").get("organization_id", "--"))
+                    in organization_ids.split(",")
+                ]
+
+            total_no_pano += len(no_pano)
+            print("no pano", len(no_pano))
+
         write_geojson(
             boundarie.get("output_file_point").replace(".geojson", "__pano.geojson"),
             pano,
         )
-        write_geojson(
-            boundarie.get("output_file_point").replace(
-                ".geojson", "__no__pano.geojson"
-            ),
-            no_pano,
-        )
-
         sequences_pano = build_mapillary_sequence(pano)
-        sequences_no_pano = build_mapillary_sequence(no_pano)
-
         print("total sequences pano", len(sequences_pano))
-        print("total sequences no pano", len(sequences_no_pano))
 
         write_geojson(
             boundarie.get("output_file_sequence").replace(".geojson", "__pano.geojson"),
             sequences_pano,
         )
-        write_geojson(
-            boundarie.get("output_file_sequence").replace(
-                ".geojson", "__no__pano.geojson"
-            ),
-            sequences_no_pano,
-        )
+
+        if not only_pano:
+            write_geojson(
+                boundarie.get("output_file_point").replace(
+                    ".geojson", "__no__pano.geojson"
+                ),
+                no_pano,
+            )
+            sequences_no_pano = build_mapillary_sequence(no_pano)
+            print("total sequences no pano", len(sequences_no_pano))
+
+            write_geojson(
+                boundarie.get("output_file_sequence").replace(
+                    ".geojson", "__no__pano.geojson"
+                ),
+                sequences_no_pano,
+            )
 
     print("=" * 10)
     print("=" * 10)
     print("pano", total_pano)
     print("no pano", total_no_pano)
+    print("=======")
 
 
 if __name__ == "__main__":
