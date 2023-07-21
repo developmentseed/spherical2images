@@ -9,7 +9,7 @@ from spherical2images.utils import write_geojson
 @click.option("--geojson_points", help="geojson_points", default="", required=False)
 @click.option(
     "--output_file_sequence",
-    help="Pathfile for geojson sequence file",
+    help="Path for custom sequence file",
     default="data/sequences.geojson",
     type=click.Path(),
 )

@@ -9,13 +9,13 @@ export MAPILLARY_ACCESS_TOKEN="MLY|..."
 docker-compose build
 ```
 
-### Download points from Mapillary into geojson file
+### 1. Download points from Mapillary into geojson file
 
 ```
 bash ./01_get_mapillary_points.sh
 ```
 
-From the 01_get_mapillary_points bash:
+From the `01_get_mapillary_points` bash:
 
 | COMMAND                 | REQUIRED | DESCRIPTION                                              |
 | -----------------       | -------- | -------------------------------------------------        |
@@ -33,6 +33,27 @@ From the 01_get_mapillary_points bash:
 ( ** ) Download the short area in order to recognize the organization id, after check out if the organization id belongs to the required organization `https://graph.mapillary.com/$ORGANIZATION_ID?access_token=$TOKEN&fields=name`.
 
 ( *** ) Convert the human date to timestamp (milliseconds) [here](https://www.epochconverter.com/). 
+
+### 1.5. Custom sequences from points
+```
+bash ./01.5_custom_sequence.sh
+```
+
+From the `01.5_custom_sequence` bash:
+
+| COMMAND                 | REQUIRED | DESCRIPTION                                              |
+| -----------------       | -------- | -------------------------------------------------        |
+| --geojson_points        | yes      | point file path                                          |
+| --output_file_sequence  | no       | custom sequence file path                                |
+
+In Mapillary, many sequences have a frontal view (road) of street-view imagery. These sequences are not useful for us when we want to label the facade building or lots, so we can remove them.
+
+In order to delete unnecessary sequences, it is necessary to have the generated custom sequence files and upload them to the tool. We have 2 tools that help us to do it:
+1. A plugin in JOSM to be able to see an image of a sequence and to be able to delete it if necessary (download it from s3://ds-data-projects/JOSM/osm-obj-info.jar). 
+
+2. An [app](https://filter_sequences.surge.sh/) that allows us to load GeoJSON files and view random images of a sequence, it allows us to delete sequences by marking with a check.
+
+
 
 ### Simplify density of points
 
