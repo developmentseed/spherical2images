@@ -35,6 +35,8 @@ From the `01_get_mapillary_points` bash:
 ( *** ) Convert the human date to timestamp (milliseconds) [here](https://www.epochconverter.com/). 
 
 ### 1.5. Custom sequences from points
+It adds URLs to review the images of the sequences.
+
 ```
 bash ./01.5_custom_sequence.sh
 ```
@@ -53,16 +55,50 @@ In order to delete unnecessary sequences, it is necessary to have the generated 
 
 2. An [app](https://filter_sequences.surge.sh/) that allows us to load GeoJSON files and view random images of a sequence, it allows us to delete sequences by marking with a check.
 
-
-
-### Simplify density of points
-
-```sh
-docker run -v $PWD:/mnt/ -it developmentseed/spherical2images:v1 \
-    simplify_points \
-        --input_points=data/Warrendale_points_filter.geojson \
-        --output_points=data/Warrendale_simplify.geojson
+### 2. Simplify sequences
 ```
+bash ./02_simplify_sequence.sh
+```
+
+From the `02_simplify_sequence` bash:
+- `merge_sequence` function, it merges sequences and removes duplicate values.
+
+| COMMAND                 | REQUIRED | DESCRIPTION                                              |
+| -----------------       | -------- | -------------------------------------------------        |
+| --geojson_input         | yes      | checked sequence file path                               |
+| --geojson_out           | yes      | merge sequence file path                                 |
+
+
+- `simplify_sequence` function, it simplifies and merges sequences using a buffer.
+
+| COMMAND                 | REQUIRED | DESCRIPTION                                              |
+| -----------------       | -------- | -------------------------------------------------        |
+| --geojson_input         | yes      | merge sequence file path                                 |
+| --buffer                | yes      | buffer size                                              |
+| --geojson_out           | yes      | filter buffer file path                                  |
+
+
+- `match_point_sequence` function, it filters points inside polygons.
+
+| COMMAND                 | REQUIRED | DESCRIPTION                                              |
+| -----------------       | -------- | -------------------------------------------------        |
+| --geojson_polygons      | yes      | filter buffer file path (polygons)                       |
+| --geojson_points        | yes      | points file path (points)                                |
+| --geojson_out           | yes      | filter check file path (points)                          |
+
+
+### 3. Simplify points density 
+```
+bash ./03_simplify_points.sh
+```
+
+From the `03_simplify_points` bash:
+
+| COMMAND                 | REQUIRED | DESCRIPTION                                              |
+| -----------------       | -------- | -------------------------------------------------        |
+| --input_points          | yes      | input file path                                          |
+| --output_points         | yes      | output file path                                         |
+
 
 ### Clip Pano images into left an right side
 
