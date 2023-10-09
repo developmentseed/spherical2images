@@ -15,7 +15,6 @@ access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 def cubemap_splitter(
     img_file_cubemap,
     image_clip_size,
-    sequence_id,
     image_id,
     output_images_path,
     cube_sides,
@@ -25,7 +24,6 @@ def cubemap_splitter(
     Args:
         img_file_cubemap (str): Location of cubemap image
         image_clip_size (int): Size of the image to clip
-        sequence_id (str): Mapillary sequece id
         image_id (ssstr): Mapillary img id
         output_images_path (str): Location to save the images
         cube_sides (str): Sides to processes the image
@@ -53,13 +51,13 @@ def cubemap_splitter(
                 crop_img = img[y * r : y * r + h, x * r : x * r + w]
                 imageRGB = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
                 img_ = Image.fromarray(imageRGB, mode="RGB")
-                chunk_img_path = f"{output_images_path}/{sequence_id}/{image_id}_{index_dict[index]}.jpg"
+                chunk_img_path = f"{output_images_path}/{image_id}_{index_dict[index]}.jpg"
                 with open(chunk_img_path, "wb") as sfile:
                     img_.save(sfile)
                     print(f"Saving...{chunk_img_path}")
 
 
-def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
+def download_clip_img(image_file_path, output_images_path, image_clip_size, cube_sides):
     """Download and clip the spherical image
 
     Args:
@@ -68,35 +66,21 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
         image_clip_size (int): Size of the image to clip
         cube_sides (string): sides to process images
     Returns:
-        list: features
+        dict: feature (or None if an error occurs)
     """
-    sequence_id = feature["properties"]["sequence_id"]
-    image_folder_path = f"{output_images_path}/{sequence_id}"
-    new_feature = None
-    if not os.path.exists(image_folder_path):
-        os.makedirs(image_folder_path)
-
-    # request the URL of each image
-    image_id = feature["properties"]["id"]
-
-    # Check if mapillary image exist and download
-    img_file_equirectangular = f"{image_folder_path}/{image_id}.jpg"
-    img_file_cubemap = f"{image_folder_path}/{image_id}_cubemap.jpg"
-
-    header = {"Authorization": "OAuth {}".format(access_token)}
-    url = "https://graph.mapillary.com/{}?fields=thumb_1024_url".format(image_id)
-
     try:
-        r = requests.get(url, headers=header)
-        data = r.json()
-        image_url = data["thumb_1024_url"]
+        # Extract image_id from the file path (assuming a specific naming convention)
+        image_id = os.path.splitext(os.path.basename(image_file_path))[0]
+        # Create necessary paths
+        image_folder_path = f"{output_images_path}/{image_id}"
+        img_file_equirectangular = f"{image_folder_path}/{image_id}.jpg"
+        img_file_cubemap = f"{image_folder_path}/{image_id}_cubemap.jpg"
 
-        with open(img_file_equirectangular, "wb") as handler:
-            image_data = requests.get(image_url, stream=True).content
-            handler.write(image_data)
+        if not os.path.exists(image_folder_path):
+            os.makedirs(image_folder_path)
 
         # Convert Equirectangular -> Cubemap
-        cmd = f"convert360 --convert e2c --i {img_file_equirectangular}  --o {img_file_cubemap} --w {image_clip_size}"
+        cmd = f"convert360 --convert e2c --i {image_file_path}  --o {img_file_cubemap} --w {image_clip_size}"
         os.system(cmd)
 
         # Split Cubemap to simple images
@@ -106,22 +90,19 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
         cubemap_splitter(
             img_file_cubemap,
             image_clip_size,
-            sequence_id,
+            # None,  # Assuming 'sequence_id' and 'output_images_path' aren't needed here
             image_id,
             output_images_path,
             cube_sides,
         )
+
         # Rename files
         clean_files(image_folder_path, image_id)
-        new_feature = feature
-    except requests.exceptions.HTTPError as err:
-        print(err)
-    except OSError as err:
-        print(err)
-    except KeyError as err:
-        print(err)
 
-    return new_feature
+        return {"properties": {"id": image_id}}  # Construct a feature-like dictionary
+    except Exception as e:
+        print(e)
+        return None
 
 
 def clean_files(image_folder_path, image_id):
@@ -140,11 +121,11 @@ def clean_files(image_folder_path, image_id):
         )
 
 
-def process_image(features, output_images_path, image_clip_size, cube_sides):
+def process_image(image_files, output_images_path, image_clip_size, cube_sides):
     """Function to run in parallel mode to process mapillary images
 
     Args:
-        features (fc): List of features objects
+        image_files (list): List of image file paths
         output_images_path (str): Location to save clipped images
         image_clip_size (int): Size of the clipped image
         cube_sides (str): Sides of the image to clip
@@ -155,10 +136,10 @@ def process_image(features, output_images_path, image_clip_size, cube_sides):
     # Process in parallel
     results = Parallel(n_jobs=-1)(
         delayed(download_clip_img)(
-            feature, output_images_path, image_clip_size, cube_sides
+            image_file, output_images_path, image_clip_size, cube_sides
         )
-        for feature in tqdm(
-            features, desc=f"Processing images for...", total=len(features)
+        for image_file in tqdm(
+            image_files, desc=f"Processing images for...", total=len(image_files)
         )
     )
     return results
