@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
-mkdir -p data
+mapimg="docker run -v $PWD:/mnt/ --rm -e MAPILLARY_ACCESS_TOKEN=$MAPILLARY_ACCESS_TOKEN -it developmentseed/spherical2images:v1"
 
-################ Download points and sequences ################
-neighborhoods="Weatherby Belmont Brush_Park Fiskhorn Carbon_Works Franklin_Park Petoskey_sego Warrendale"
-for neighborhood in $neighborhoods; do
-    echo "NEIGHBORHOOD: $neighborhood"
-    
-    mkdir -p data/$neighborhood
+outputDir=data
+mkdir -p $outputDir
 
-    $mapimg clip_mapillary_pano \
-        --input_file_points=s3://urban-blight/detroit/mapillary/points_sequences/${neighborhood}_simplify_validated.geojson \
-        --image_clip_size=1024 \
-        --output_file_points=s3://urban-blight/detroit/mapillary/points_sequences/${neighborhood}_point_images.geojson \
-        --output_images_path=s3://urban-blight-public-mapillary-images/detroit/mapillary/images/$neighborhood \
-        --cube_sides=right,left
-done
+$mapimg clip_mapillary_pano \
+    --input_images_folder=$outputDir/Road_S1_SPL \
+    --image_clip_size=1024 \
+    --output_file_points=$outputDir/points__pano_output_folder.geojson \
+    --output_images_path=$outputDir/clip_raw_images_spl_1024 \
+    --cube_sides=right,left
