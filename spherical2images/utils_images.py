@@ -84,12 +84,12 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
     img_file_cubemap = f"{image_folder_path}/{image_id}_cubemap.jpg"
 
     header = {"Authorization": "OAuth {}".format(access_token)}
-    url = "https://graph.mapillary.com/{}?fields=thumb_1024_url".format(image_id)
+    url = "https://graph.mapillary.com/{}?fields=thumb_original_url".format(image_id)
 
     try:
         r = requests.get(url, headers=header)
         data = r.json()
-        image_url = data["thumb_1024_url"]
+        image_url = data["thumb_original_url"]
 
         with open(img_file_equirectangular, "wb") as handler:
             image_data = requests.get(image_url, stream=True).content
