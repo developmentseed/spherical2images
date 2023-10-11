@@ -33,7 +33,7 @@ def main(
 
     features = read_geojson(input_file_points)
     output = process_image(features, output_images_path, image_clip_size, cube_sides)
-    features = [fea for fea in output if fea is not None]
+    features = [fea for fea in output if fea]
     write_geojson(output_file_points, features)
 
 

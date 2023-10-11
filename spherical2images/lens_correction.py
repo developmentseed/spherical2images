@@ -46,7 +46,7 @@ def feature_image_correction(feature, output_images_path, header, s3_url):
 
     file_name = f"{image_folder_path}/{image_id}_original.jpg"
     file_name_fixed = f"{image_folder_path}/{image_id}_fixed.jpg"
-    url = "https://graph.mapillary.com/{}?fields=thumb_1024_url".format(image_id)
+    url = "https://graph.mapillary.com/{}?fields=thumb_original_url".format(image_id)
 
     feature["properties"]["url"] = file_name_fixed.replace(output_images_path, s3_url)
 
@@ -56,7 +56,7 @@ def feature_image_correction(feature, output_images_path, header, s3_url):
     try:
         r = requests.get(url, headers=header, timeout=30)
         data = r.json()
-        image_url = data["thumb_1024_url"]
+        image_url = data["thumb_original_url"]
         # file original
         with open(file_name, "wb") as handler:
             image_data = requests.get(image_url, stream=True).content

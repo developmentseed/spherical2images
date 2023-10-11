@@ -8,17 +8,19 @@ import cv2
 from PIL import Image
 from smart_open import open
 import lensfunpy
+from copy import deepcopy
+from itertools import chain
 
 access_token = os.environ.get("MAPILLARY_ACCESS_TOKEN")
 
 
 def cubemap_splitter(
-    img_file_cubemap,
-    image_clip_size,
-    sequence_id,
-    image_id,
-    output_images_path,
-    cube_sides,
+        img_file_cubemap,
+        image_clip_size,
+        sequence_id,
+        image_id,
+        output_images_path,
+        cube_sides,
 ):
     """Split cubemap images
 
@@ -30,33 +32,42 @@ def cubemap_splitter(
         output_images_path (str): Location to save the images
         cube_sides (str): Sides to processes the image
     """
-    img = cv2.imread(img_file_cubemap)
-    img_height = img.shape[0]
-    img_width = img.shape[1]
-    r = img_width - img_height
-    h = w = image_clip_size
-    horizontal_chunks = 4
-    vertical_chunks = 3
-    index_dict = {
-        "1,0": "top",
-        "0,1": "left",
-        "1,1": "front",
-        "2,1": "right",
-        "3,1": "back",
-        "1,2": "bottom",
-    }
-    sides = cube_sides.split(",")
-    for x in range(0, horizontal_chunks):
-        for y in range(0, vertical_chunks):
-            index = f"{x},{y}"
-            if index in index_dict.keys() and index_dict[index] in sides:
-                crop_img = img[y * r : y * r + h, x * r : x * r + w]
-                imageRGB = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-                img_ = Image.fromarray(imageRGB, mode="RGB")
-                chunk_img_path = f"{output_images_path}/{sequence_id}/{image_id}_{index_dict[index]}.jpg"
-                with open(chunk_img_path, "wb") as sfile:
-                    img_.save(sfile)
-                    print(f"Saving...{chunk_img_path}")
+    try:
+        img = cv2.imread(img_file_cubemap)
+        img_height = img.shape[0]
+        img_width = img.shape[1]
+        r = img_width - img_height
+        h = w = image_clip_size
+        horizontal_chunks = 4
+        vertical_chunks = 3
+        index_dict = {
+            "1,0": "top",
+            "0,1": "left",
+            "1,1": "front",
+            "2,1": "right",
+            "3,1": "back",
+            "1,2": "bottom",
+        }
+        sides = cube_sides.split(",")
+        status_response = []
+        for x in range(0, horizontal_chunks):
+            for y in range(0, vertical_chunks):
+                index = f"{x},{y}"
+                if index in index_dict.keys() and index_dict[index] in sides:
+                    try:
+                        crop_img = img[y * r: y * r + h, x * r: x * r + w]
+                        imageRGB = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
+                        img_ = Image.fromarray(imageRGB, mode="RGB")
+                        chunk_img_path = f"{output_images_path}/{sequence_id}/{image_id}_{index_dict[index]}.jpg"
+                        with open(chunk_img_path, "wb") as sfile:
+                            img_.save(sfile)
+                            status_response.append(chunk_img_path)
+                    except Exception as ex:
+                        status_response.append(False)
+        return status_response
+    except Exception as ex:
+        print(f"error: {ex} in {output_images_path}/{sequence_id}/{image_id}.jpg")
+        return [False] * len(cube_sides.split(","))
 
 
 def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
@@ -85,7 +96,7 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
 
     header = {"Authorization": "OAuth {}".format(access_token)}
     url = "https://graph.mapillary.com/{}?fields=thumb_original_url".format(image_id)
-
+    results = []
     try:
         r = requests.get(url, headers=header)
         data = r.json()
@@ -100,10 +111,7 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
         os.system(cmd)
 
         # Split Cubemap to simple images
-        chumk_image_path = f"{image_folder_path}/{image_id}"
-        if not os.path.exists(chumk_image_path):
-            os.makedirs(chumk_image_path)
-        cubemap_splitter(
+        result_status = cubemap_splitter(
             img_file_cubemap,
             image_clip_size,
             sequence_id,
@@ -113,15 +121,15 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
         )
         # Rename files
         clean_files(image_folder_path, image_id)
-        new_feature = feature
-    except requests.exceptions.HTTPError as err:
-        print(err)
-    except OSError as err:
-        print(err)
-    except KeyError as err:
+        for i in result_status:
+            if i:
+                new_feature = deepcopy(feature)
+                new_feature["properties"]["image_path"] = i
+                results.append(deepcopy(new_feature))
+    except Exception as err:
         print(err)
 
-    return new_feature
+    return results
 
 
 def clean_files(image_folder_path, image_id):
@@ -153,7 +161,7 @@ def process_image(features, output_images_path, image_clip_size, cube_sides):
         fc: List of points that images were processed
     """
     # Process in parallel
-    results = Parallel(n_jobs=-1)(
+    results2d = Parallel(n_jobs=-1)(
         delayed(download_clip_img)(
             feature, output_images_path, image_clip_size, cube_sides
         )
@@ -161,6 +169,9 @@ def process_image(features, output_images_path, image_clip_size, cube_sides):
             features, desc=f"Processing images for...", total=len(features)
         )
     )
+    results1d = list(chain.from_iterable(list(results2d)))
+    results = [i for i in results1d if i]
+
     return results
 
 
