@@ -83,7 +83,6 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
     """
     sequence_id = feature["properties"]["sequence_id"]
     image_folder_path = f"{output_images_path}/{sequence_id}"
-    new_feature = None
     if not os.path.exists(image_folder_path):
         os.makedirs(image_folder_path)
 
@@ -120,7 +119,7 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
             cube_sides,
         )
         # Rename files
-        clean_files(image_folder_path, image_id)
+        clean_files(image_folder_path, image_id, cube_sides)
         for i in result_status:
             if i:
                 new_feature = deepcopy(feature)
@@ -132,20 +131,22 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
     return results
 
 
-def clean_files(image_folder_path, image_id):
+def clean_files(image_folder_path, image_id, cube_sides):
     """Remove files that was uploaded to s3, in order to optimize the fargate disk
 
     Args:
         image_folder_path (str): Location of the folder
         image_id (str): Id of the image
+        cube_sides (str): sides to process images
     """
     chumk_image_path = f"{image_folder_path}/{image_id}"
-    for file in glob.glob(f"{chumk_image_path}/*.jpg"):
-        side = Path(file).stem
-        os.rename(
-            f"{chumk_image_path}/{side}.jpg",
-            f"{image_folder_path}/{image_id}_{side}.jpg",
-        )
+    images_generate = [f"{chumk_image_path}_{i}.jpg" for i in cube_sides.split(",")]
+    images_remove = [i for i in glob.glob(f"{chumk_image_path}*.jpg") if i not in images_generate]
+    for file in images_remove:
+        try:
+            os.remove(file)
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
 
 
 def process_image(features, output_images_path, image_clip_size, cube_sides):
