@@ -63,6 +63,7 @@ def cubemap_splitter(
                             img_.save(sfile)
                             status_response.append(chunk_img_path)
                     except Exception as ex:
+                        print(ex)
                         status_response.append(False)
         return status_response
     except Exception as ex:
@@ -96,6 +97,14 @@ def download_clip_img(feature, output_images_path, image_clip_size, cube_sides):
     header = {"Authorization": "OAuth {}".format(access_token)}
     url = "https://graph.mapillary.com/{}?fields=thumb_original_url".format(image_id)
     results = []
+
+    if all([Path(f"{image_folder_path}/{image_id}_{i}.jpg").exists() for i in cube_sides.split(',')]):
+        for i in cube_sides.split(','):
+            new_feature = deepcopy(feature)
+            new_feature["properties"]["image_path"] = f"{image_folder_path}/{image_id}_{i}.jpg"
+            results.append(deepcopy(new_feature))
+        return results
+
     try:
         r = requests.get(url, headers=header)
         data = r.json()
